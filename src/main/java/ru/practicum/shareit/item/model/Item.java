@@ -7,9 +7,15 @@ import ru.practicum.shareit.user.model.User;
 @Data
 public class Item {
     private Long id;
-    private final String name;
-    private final String description;
-    private final Boolean available;
-    private final User owner;
-    private final ItemRequest request;
+    private String name;
+    private String description;
+    private Boolean available;
+    private User owner;
+    private ItemRequest request;
+
+    public Item(String name, String description, Boolean available) {
+        this.name = name;
+        this.description = description;
+        this.available = available;
+    }
 }
