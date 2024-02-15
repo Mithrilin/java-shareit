@@ -11,6 +11,9 @@ import ru.practicum.shareit.item.repository.ItemRepository;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Slf4j
 @Service
 @AllArgsConstructor
@@ -60,5 +63,33 @@ public class ItemServiceImpl implements ItemService {
         }
         log.info("Вещь с ID {} обновлена.", itemDto.getId());
         return ItemMapper.toItemDto(item);
+    }
+
+    @Override
+    public ItemDto getItemById(long id) {
+        Item item = itemRepository.getItemById(id);
+        ItemDto itemDto = ItemMapper.toItemDto(item);
+        log.info("Вещь с ID {} возвращена.", id);
+        return itemDto;
+    }
+
+    @Override
+    public List<ItemDto> getAllItemsByUserId(long userId) {
+        User user = userRepository.getUserById(userId);
+        if (user == null) {
+            throw new NotFoundException(String.format("Пользователь с ИД %d отсутствует в БД.", userId));
+        }
+        List<Item> items = itemRepository.getAllItemsByUserId(userId);
+        List<ItemDto> itemsDto = items.stream().map(ItemMapper::toItemDto).collect(Collectors.toList());
+        log.info("Текущее количество вещей пользователя с ид {} составляет: {} шт. Список возвращён.", userId, items.size());
+        return itemsDto;
+    }
+
+    @Override
+    public List<ItemDto> getItemsBySearch(String text) {
+        List<Item> items = itemRepository.getItemsBySearch(text.toLowerCase());
+        List<ItemDto> itemsDto = items.stream().map(ItemMapper::toItemDto).collect(Collectors.toList());
+        log.info("Текущее количество свободных вещей по запросу \"{}\" составляет: {} шт. Список возвращён.", text, items.size());
+        return itemsDto;
     }
 }

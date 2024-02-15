@@ -7,6 +7,7 @@ import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.service.ItemService;
 
 import javax.validation.constraints.Positive;
+import java.util.List;
 
 @Validated
 @RestController
@@ -27,5 +28,20 @@ public class ItemController {
                               @PathVariable @Positive long id) {
         itemDto.setId(id);
         return itemService.updateItem(userId, itemDto);
+    }
+
+    @GetMapping("/{id}")
+    public ItemDto getItemById(@PathVariable @Positive long id) {
+        return itemService.getItemById(id);
+    }
+
+    @GetMapping
+    public List<ItemDto> getAllItemsByUserId(@RequestHeader("X-Sharer-User-Id") long userId) {
+        return itemService.getAllItemsByUserId(userId);
+    }
+
+    @GetMapping("/search")
+    public List<ItemDto> getItemsBySearch(@RequestParam String text) {
+        return itemService.getItemsBySearch(text);
     }
 }
