@@ -21,12 +21,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDto addUser(UserDto userDto) {
-        if (userDto.getEmail() == null) {
-            throw new RuntimeException("Email пользователя не должен быть null.");
-        }
-        if (userDto.getEmail().isBlank() || userRepository.isEmailPresent(userDto.getEmail())) {
-            throw new ValidationException("Email пользователя не прошёл валидацию.");
-        }
+        isEmailValid(userDto);
         User user = UserMapper.toUser(userDto);
         user = userRepository.addUser(user);
         userDto.setId(user.getId());
@@ -37,15 +32,11 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserDto updateUser(UserDto userDto) {
         User user = userRepository.getUserById(userDto.getId());
-        if (user == null) {
-            throw new NotFoundException(String.format("Пользователь с ИД %d отсутствует в БД.", userDto.getId()));
-        }
+        isUserPresent(user, userDto.getId());
         String oldEmail = user.getEmail();
         String newEmail = userDto.getEmail();
         if (newEmail != null) {
-            if (userRepository.isEmailPresent(newEmail) && !oldEmail.equals(newEmail)) {
-                throw new ValidationException(String.format("Пользователь с Email %s уже существует.", newEmail));
-            }
+            isEmailPresent(newEmail, oldEmail);
             userRepository.changeEmailInMap(newEmail, oldEmail);
             user.setEmail(newEmail);
         }
@@ -59,6 +50,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserDto getUserById(long id) {
         User user = userRepository.getUserById(id);
+        isUserPresent(user, id);
         UserDto userDto = UserMapper.toUserDto(user);
         log.info("Пользователь с ID {} возвращён.", id);
         return userDto;
@@ -66,9 +58,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void deleteUser(long id) {
-        if (userRepository.getUserById(id) == null) {
-            throw new NotFoundException(String.format("Пользователь с ИД %d отсутствует в БД.", id));
-        }
+        isUserPresent(userRepository.getUserById(id), id);
         userRepository.deleteUser(id);
         log.info("Пользователь с ID {} удалён.", id);
     }
@@ -78,5 +68,26 @@ public class UserServiceImpl implements UserService {
         List<User> users = userRepository.getAllUsers();
         log.info("Текущее количество пользователей: {}. Список возвращён.", users.size());
         return users.stream().map(UserMapper::toUserDto).collect(Collectors.toList());
+    }
+
+    private void isUserPresent(User user, Long id) {
+        if (user == null) {
+            throw new NotFoundException(String.format("Пользователь с ИД %d отсутствует в БД.", id));
+        }
+    }
+
+    private void isEmailPresent(String newEmail, String oldEmail) {
+        if (userRepository.isEmailPresent(newEmail) && !oldEmail.equals(newEmail)) {
+            throw new ValidationException(String.format("Пользователь с Email %s уже существует.", newEmail));
+        }
+    }
+
+    private void isEmailValid(UserDto userDto) {
+        if (userDto.getEmail() == null) {
+            throw new RuntimeException("Email пользователя не должен быть null.");
+        }
+        if (userDto.getEmail().isBlank() || userRepository.isEmailPresent(userDto.getEmail())) {
+            throw new ValidationException("Email пользователя не прошёл валидацию.");
+        }
     }
 }

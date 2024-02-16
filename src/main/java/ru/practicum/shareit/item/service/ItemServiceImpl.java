@@ -23,17 +23,9 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public ItemDto addItem(long userId, ItemDto itemDto) {
-        if (itemDto.getName() == null
-                || itemDto.getName().isBlank()
-                || itemDto.getDescription() == null
-                || itemDto.getDescription().isBlank()
-                || itemDto.getAvailable() == null) {
-            throw new RuntimeException("Вещь не прошла проверку.");
-        }
+        isItemDtoValid(itemDto);
         User user = userRepository.getUserById(userId);
-        if (user == null) {
-            throw new NotFoundException(String.format("Пользователь с ИД %d отсутствует в БД.", userId));
-        }
+        isUserPresent(user, userId);
         Item item = ItemMapper.toItem(itemDto);
         item.setOwner(user);
         item = itemRepository.addItem(item);
@@ -45,13 +37,8 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public ItemDto updateItem(long userId, ItemDto itemDto) {
         Item item = itemRepository.getItemById(itemDto.getId());
-        if (item == null) {
-            throw new NotFoundException(String.format("Вещь с ИД %d отсутствует в БД.", itemDto.getId()));
-        }
-        if (item.getOwner().getId() != userId) {
-            throw new NotFoundException(String.format("Пользователь с ИД %d не является владельцем вещи с ИД %d.",
-                    userId, item.getId()));
-        }
+        isItemPresent(item, itemDto.getId());
+        isUserOwner(item, userId);
         if (itemDto.getAvailable() != null) {
             item.setAvailable(itemDto.getAvailable());
         }
@@ -68,6 +55,7 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public ItemDto getItemById(long id) {
         Item item = itemRepository.getItemById(id);
+        isItemPresent(item, id);
         ItemDto itemDto = ItemMapper.toItemDto(item);
         log.info("Вещь с ID {} возвращена.", id);
         return itemDto;
@@ -76,12 +64,11 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public List<ItemDto> getAllItemsByUserId(long userId) {
         User user = userRepository.getUserById(userId);
-        if (user == null) {
-            throw new NotFoundException(String.format("Пользователь с ИД %d отсутствует в БД.", userId));
-        }
+        isUserPresent(user, userId);
         List<Item> items = itemRepository.getAllItemsByUserId(userId);
         List<ItemDto> itemsDto = items.stream().map(ItemMapper::toItemDto).collect(Collectors.toList());
-        log.info("Текущее количество вещей пользователя с ид {} составляет: {} шт. Список возвращён.", userId, items.size());
+        log.info("Текущее количество вещей пользователя с ид {} составляет: {} шт. Список возвращён.",
+                userId, items.size());
         return itemsDto;
     }
 
@@ -89,7 +76,37 @@ public class ItemServiceImpl implements ItemService {
     public List<ItemDto> getItemsBySearch(String text) {
         List<Item> items = itemRepository.getItemsBySearch(text.toLowerCase());
         List<ItemDto> itemsDto = items.stream().map(ItemMapper::toItemDto).collect(Collectors.toList());
-        log.info("Текущее количество свободных вещей по запросу \"{}\" составляет: {} шт. Список возвращён.", text, items.size());
+        log.info("Текущее количество свободных вещей по запросу \"{}\" составляет: {} шт. Список возвращён.",
+                text, items.size());
         return itemsDto;
+    }
+
+    private void isUserPresent(User user, Long id) {
+        if (user == null) {
+            throw new NotFoundException(String.format("Пользователь с ИД %d отсутствует в БД.", id));
+        }
+    }
+
+    private void isItemPresent(Item item, Long id) {
+        if (item == null) {
+            throw new NotFoundException(String.format("Вещь с ИД %d отсутствует в БД.", id));
+        }
+    }
+
+    private void isUserOwner(Item item, long userId) {
+        if (item.getOwner().getId() != userId) {
+            throw new NotFoundException(String.format("Пользователь с ИД %d не является владельцем вещи с ИД %d.",
+                    userId, item.getId()));
+        }
+    }
+
+    private void isItemDtoValid(ItemDto itemDto) {
+        if (itemDto.getName() == null
+                || itemDto.getName().isBlank()
+                || itemDto.getDescription() == null
+                || itemDto.getDescription().isBlank()
+                || itemDto.getAvailable() == null) {
+            throw new RuntimeException("Вещь не прошла проверку.");
+        }
     }
 }

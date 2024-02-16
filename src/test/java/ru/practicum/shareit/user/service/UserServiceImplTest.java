@@ -7,9 +7,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.DirtiesContext;
+import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.exception.ValidationException;
 import ru.practicum.shareit.user.dto.UserDto;
-import ru.practicum.shareit.user.model.User;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -20,10 +22,8 @@ class UserServiceImplTest {
     private static final String NAME_USER_ONE = "Name 111";
     private static final String NAME_USER_DTO_ONE = "DTO Name 111";
     private static final String NAME_USER_DTO_TWO = "DTO Name 222";
-    private static final String EMAIL_USER_ONE = "111@mail.ru";
     private static final String EMAIL_USER_DTO_ONE = "DTO111@mail.ru";
     private static final String EMAIL_USER_DTO_TWO = "DTO222@mail.ru";
-    private static User userOne = null;
     private static UserDto userDtoOne = null;
     private static UserDto userDtoTwo = null;
     private final UserServiceImpl userServiceImpl;
@@ -88,18 +88,111 @@ class UserServiceImplTest {
 
         UserDto userDto2 = userServiceImpl.updateUser(userDtoNew);
 
-        assertEquals(userDtoOne.getEmail(), userDto2.getEmail());
+        assertEquals("new name", userDto2.getName());
     }
 
     @Test
-    void getUserById() {
+    @DisplayName("Обновление имейла пользователя")
+    void testUpdateUser_EmailsShouldBeEquals() {
+        UserDto userDto1 = userServiceImpl.addUser(userDtoOne);
+        UserDto userDtoNew = new UserDto(null, "new@mail.ru");
+        userDtoNew.setId(userDto1.getId());
+
+        UserDto userDto2 = userServiceImpl.updateUser(userDtoNew);
+
+        assertEquals("new@mail.ru", userDto2.getEmail());
     }
 
     @Test
-    void deleteUser() {
+    @DisplayName("Обновление имейла на уже имеющийся в базе")
+    void testUpdateUser_ShouldThrowExceptionWhenEmailPresent() {
+        UserDto userDto1 = userServiceImpl.addUser(userDtoOne);
+        userServiceImpl.addUser(userDtoTwo);
+        UserDto userDtoNew = new UserDto(null, EMAIL_USER_DTO_TWO);
+        userDtoNew.setId(userDto1.getId());
+
+        ValidationException exception = assertThrows(
+                ValidationException.class,
+                () -> userServiceImpl.updateUser(userDtoNew));
+
+        assertEquals(String.format("Пользователь с Email %s уже существует.", EMAIL_USER_DTO_TWO),
+                exception.getMessage());
     }
 
     @Test
-    void getAllUsers() {
+    @DisplayName("Обновление имейла если ид неправильный")
+    void testUpdateUser_ShouldThrowExceptionWhenIdNotPresent() {
+        userServiceImpl.addUser(userDtoOne);
+        userServiceImpl.addUser(userDtoTwo);
+        UserDto userDtoNew = new UserDto(null, EMAIL_USER_DTO_TWO);
+        userDtoNew.setId(111L);
+
+        NotFoundException exception = assertThrows(
+                NotFoundException.class,
+                () -> userServiceImpl.updateUser(userDtoNew));
+
+        assertEquals(String.format("Пользователь с ИД %d отсутствует в БД.", 111L),
+                exception.getMessage());
+    }
+
+    @Test
+    @DisplayName("Получение пользователя по ид")
+    void testGetUserById_ShouldBeEquals() {
+        UserDto userDto1 = userServiceImpl.addUser(userDtoOne);
+
+        UserDto userDtoNew = userServiceImpl.getUserById(userDto1.getId());
+
+        assertEquals(userDto1.getName(), userDtoNew.getName());
+        assertEquals(userDto1.getEmail(), userDtoNew.getEmail());
+        assertEquals(userDto1.getId(), userDtoNew.getId());
+    }
+
+    @Test
+    @DisplayName("Получение пользователя по неправильному ид")
+    void testGetUserById_ShouldThrowExceptionWhenIdNotPresent() {
+        userServiceImpl.addUser(userDtoOne);
+
+        NotFoundException exception = assertThrows(
+                NotFoundException.class,
+                () -> userServiceImpl.getUserById(111L));
+
+        assertEquals(String.format("Пользователь с ИД %d отсутствует в БД.", 111L),
+                exception.getMessage());
+    }
+
+    @Test
+    @DisplayName("Удаление пользователя")
+    void testDeleteUser() {
+        UserDto userDto1 = userServiceImpl.addUser(userDtoOne);
+        userServiceImpl.addUser(userDtoTwo);
+
+        userServiceImpl.deleteUser(userDto1.getId());
+
+        List<UserDto> userDtos = userServiceImpl.getAllUsers();
+        assertEquals(1, userDtos.size());
+        assertEquals(2, userDtos.get(0).getId());
+    }
+
+    @Test
+    @DisplayName("Удаление пользователя с неправильным ид")
+    void testDeleteUser_ShouldThrowExceptionWhenIdNotPresent() {
+
+        NotFoundException exception = assertThrows(
+                NotFoundException.class,
+                () -> userServiceImpl.deleteUser(111L));
+
+        assertEquals(String.format("Пользователь с ИД %d отсутствует в БД.", 111L),
+                exception.getMessage());
+    }
+
+    @Test
+    @DisplayName("Получение списка всех пользователей")
+    void testGetAllUsers_ShouldBe2() {
+        userServiceImpl.addUser(userDtoOne);
+        userServiceImpl.addUser(userDtoTwo);
+
+        List<UserDto> userDtos = userServiceImpl.getAllUsers();
+
+        assertEquals(2, userDtos.size());
     }
 }
