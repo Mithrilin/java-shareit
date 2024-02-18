@@ -7,6 +7,7 @@ import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.service.ItemService;
 
 import javax.validation.constraints.Positive;
+import java.util.Collections;
 import java.util.List;
 
 @Validated
@@ -42,6 +43,9 @@ public class ItemController {
 
     @GetMapping("/search")
     public List<ItemDto> getItemsBySearch(@RequestParam String text) {
+        if (text == null || text.isBlank()) {
+            return Collections.emptyList();
+        }
         return itemService.getItemsBySearch(text);
     }
 }

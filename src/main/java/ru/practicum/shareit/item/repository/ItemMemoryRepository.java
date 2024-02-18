@@ -3,22 +3,22 @@ package ru.practicum.shareit.item.repository;
 import org.springframework.stereotype.Repository;
 import ru.practicum.shareit.item.model.Item;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Repository
 public class ItemMemoryRepository implements ItemRepository {
     private final Map<Long, Item> itemMap = new HashMap<>();
+    private final Map<Long, List<Item>> userItemIndex = new LinkedHashMap<>();
     private long itemId = 1;
 
     @Override
     public Item addItem(Item item) {
+        final List<Item> items = userItemIndex.computeIfAbsent(item.getOwner().getId(), k -> new ArrayList<>());
         item.setId(itemId);
         itemMap.put(itemId, item);
         itemId++;
+        items.add(item);
         return item;
     }
 
@@ -32,7 +32,7 @@ public class ItemMemoryRepository implements ItemRepository {
 
     @Override
     public List<Item> getAllItemsByUserId(long userId) {
-        return itemMap.values().stream().filter(item -> item.getOwner().getId() == userId).collect(Collectors.toList());
+        return userItemIndex.get(userId);
     }
 
     @Override
