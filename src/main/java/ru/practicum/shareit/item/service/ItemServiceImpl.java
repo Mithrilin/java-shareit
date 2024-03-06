@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.exception.NotFoundException;
+import ru.practicum.shareit.exception.ValidationException;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.mapper.ItemMapper;
@@ -12,7 +13,7 @@ import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
 
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -24,39 +25,50 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public ItemDto addItem(long userId, ItemDto itemDto) {
         isItemDtoValid(itemDto);
-        User user = userRepository.getReferenceById(userId);
-        isUserPresent(user, userId);
+        Optional<User> optionalUser = userRepository.findById(userId);
+        if (optionalUser.isEmpty()) {
+            throw new NotFoundException(String.format("Пользователь с ИД %d отсутствует в БД.", userId));
+        }
         Item item = ItemMapper.toItem(itemDto);
-        item.setOwner(user);
-        item = itemRepository.addItem(item);
-        itemDto.setId(item.getId());
-        log.info("Добавлена новая вещь с ID = {}", item.getId());
-        return itemDto;
+        item.setOwner(optionalUser.get());
+        Item savedItem = itemRepository.save(item);
+        log.info("Добавлена новая вещь с ID = {}", savedItem.getId());
+        return ItemMapper.toItemDto(savedItem);
     }
 
     @Override
     public ItemDto updateItem(long userId, ItemDto itemDto) {
-        Item item = itemRepository.getItemById(itemDto.getId());
-        isItemPresent(item, itemDto.getId());
-        isUserOwner(item, userId);
+        Optional<User> optionalUser = userRepository.findById(userId);
+        if (optionalUser.isEmpty()) {
+            throw new NotFoundException(String.format("Пользователь с ИД %d отсутствует в БД.", userId));
+        }
+        Optional<Item> optionalItem = itemRepository.findById(itemDto.getId());
+        if (optionalItem.isEmpty()) {
+            throw new NotFoundException(String.format("Вещь с ИД %d отсутствует в БД.", itemDto.getId()));
+        }
+        Item oldItem = optionalItem.get();
+        isUserOwner(oldItem, userId);
         if (itemDto.getAvailable() != null) {
-            item.setAvailable(itemDto.getAvailable());
+            oldItem.setAvailable(itemDto.getAvailable());
         }
         if (itemDto.getDescription() != null) {
-            item.setDescription(itemDto.getDescription());
+            oldItem.setDescription(itemDto.getDescription());
         }
         if (itemDto.getName() != null) {
-            item.setName(itemDto.getName());
+            oldItem.setName(itemDto.getName());
         }
-        log.info("Вещь с ID {} обновлена.", itemDto.getId());
-        return ItemMapper.toItemDto(item);
+        Item updatedItem = itemRepository.save(oldItem);
+        log.info("Вещь с ID {} обновлена.", updatedItem.getId());
+        return ItemMapper.toItemDto(updatedItem);
     }
 
     @Override
     public ItemDto getItemById(long id) {
-        Item item = itemRepository.getItemById(id);
-        isItemPresent(item, id);
-        ItemDto itemDto = ItemMapper.toItemDto(item);
+        Optional<Item> optionalItem = itemRepository.findById(id);
+        if (optionalItem.isEmpty()) {
+            throw new NotFoundException(String.format("Вещь с ИД %d отсутствует в БД.", id));
+        }
+        ItemDto itemDto = ItemMapper.toItemDto(optionalItem.get());
         log.info("Вещь с ID {} возвращена.", id);
         return itemDto;
     }
@@ -65,20 +77,22 @@ public class ItemServiceImpl implements ItemService {
     public List<ItemDto> getAllItemsByUserId(long userId) {
         User user = userRepository.getReferenceById(userId);
         isUserPresent(user, userId);
-        List<Item> items = itemRepository.getAllItemsByUserId(userId);
-        List<ItemDto> itemsDto = items.stream().map(ItemMapper::toItemDto).collect(Collectors.toList());
-        log.info("Текущее количество вещей пользователя с ид {} составляет: {} шт. Список возвращён.",
-                userId, items.size());
-        return itemsDto;
+//        List<Item> items = itemRepository.getAllItemsByUserId(userId);
+//        List<ItemDto> itemsDto = items.stream().map(ItemMapper::toItemDto).collect(Collectors.toList());
+//        log.info("Текущее количество вещей пользователя с ид {} составляет: {} шт. Список возвращён.",
+//                userId, items.size());
+//        return itemsDto;
+        return null;
     }
 
     @Override
     public List<ItemDto> getItemsBySearch(String text) {
-        List<Item> items = itemRepository.getItemsBySearch(text.toLowerCase());
-        List<ItemDto> itemsDto = items.stream().map(ItemMapper::toItemDto).collect(Collectors.toList());
-        log.info("Текущее количество свободных вещей по запросу \"{}\" составляет: {} шт. Список возвращён.",
-                text, items.size());
-        return itemsDto;
+//        List<Item> items = itemRepository.getItemsBySearch(text.toLowerCase());
+//        List<ItemDto> itemsDto = items.stream().map(ItemMapper::toItemDto).collect(Collectors.toList());
+//        log.info("Текущее количество свободных вещей по запросу \"{}\" составляет: {} шт. Список возвращён.",
+//                text, items.size());
+//        return itemsDto;
+        return null;
     }
 
     private void isUserPresent(User user, Long id) {
@@ -106,7 +120,7 @@ public class ItemServiceImpl implements ItemService {
                 || itemDto.getDescription() == null
                 || itemDto.getDescription().isBlank()
                 || itemDto.getAvailable() == null) {
-            throw new RuntimeException("Вещь не прошла проверку.");
+            throw new ValidationException("Вещь не прошла проверку.");
         }
     }
 }

@@ -38,18 +38,27 @@ public class UserServiceImpl implements UserService {
         if (optionalUser.isEmpty()) {
             throw new NotFoundException(String.format("Пользователь с ИД %d отсутствует в БД.", userDto.getId()));
         }
-        User user = optionalUser.get();
-        User newUser = UserMapper.toUser(userDto);
-        User user1 = userRepository.save(UserMapper.toUser(userDto));
-
-        log.info("Пользователь с ID {} обновлён.", user1.getId());
-        return UserMapper.toUserDto(user1);
+        User oldUser = optionalUser.get();
+        String newEmail = userDto.getEmail();
+        if (newEmail != null) {
+            oldUser.setEmail(newEmail);
+        }
+        String newName = userDto.getName();
+        if (newName != null) {
+            oldUser.setName(newName);
+        }
+        User updatedUser = userRepository.save(oldUser);
+        log.info("Пользователь с ID {} обновлён.", updatedUser.getId());
+        return UserMapper.toUserDto(updatedUser);
     }
 
     @Override
     public UserDto getUserById(long id) {
-        User user = userRepository.getReferenceById(id);
-        UserDto userDto = UserMapper.toUserDto(user);
+        Optional<User> optionalUser = userRepository.findById(id);
+        if (optionalUser.isEmpty()) {
+            throw new NotFoundException(String.format("Пользователь с ИД %d отсутствует в БД.", id));
+        }
+        UserDto userDto = UserMapper.toUserDto(optionalUser.get());
         log.info("Пользователь с ID {} возвращён.", id);
         return userDto;
     }
