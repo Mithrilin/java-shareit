@@ -24,7 +24,7 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public ItemDto addItem(long userId, ItemDto itemDto) {
         isItemDtoValid(itemDto);
-        User user = userRepository.getUserById(userId);
+        User user = userRepository.getReferenceById(userId);
         isUserPresent(user, userId);
         Item item = ItemMapper.toItem(itemDto);
         item.setOwner(user);
@@ -63,7 +63,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public List<ItemDto> getAllItemsByUserId(long userId) {
-        User user = userRepository.getUserById(userId);
+        User user = userRepository.getReferenceById(userId);
         isUserPresent(user, userId);
         List<Item> items = itemRepository.getAllItemsByUserId(userId);
         List<ItemDto> itemsDto = items.stream().map(ItemMapper::toItemDto).collect(Collectors.toList());
