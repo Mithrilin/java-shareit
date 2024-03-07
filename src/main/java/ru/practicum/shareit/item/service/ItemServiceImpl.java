@@ -75,24 +75,21 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public List<ItemDto> getAllItemsByUserId(long userId) {
-        User user = userRepository.getReferenceById(userId);
-        isUserPresent(user, userId);
-//        List<Item> items = itemRepository.getAllItemsByUserId(userId);
-//        List<ItemDto> itemsDto = items.stream().map(ItemMapper::toItemDto).collect(Collectors.toList());
-//        log.info("Текущее количество вещей пользователя с ид {} составляет: {} шт. Список возвращён.",
-//                userId, items.size());
-//        return itemsDto;
-        return null;
+        List<Item> items = itemRepository.findAllByOwnerId(userId);
+        List<ItemDto> itemDtos = ItemMapper.toItemDtos(items);
+        log.info("Текущее количество вещей пользователя с ид {} составляет: {} шт. Список возвращён.",
+                userId, items.size());
+        return itemDtos;
     }
 
     @Override
     public List<ItemDto> getItemsBySearch(String text) {
-//        List<Item> items = itemRepository.getItemsBySearch(text.toLowerCase());
-//        List<ItemDto> itemsDto = items.stream().map(ItemMapper::toItemDto).collect(Collectors.toList());
-//        log.info("Текущее количество свободных вещей по запросу \"{}\" составляет: {} шт. Список возвращён.",
-//                text, items.size());
-//        return itemsDto;
-        return null;
+        String param = "%" + text + "%";
+        List<Item> items = itemRepository.findAllBySearch(param);
+        List<ItemDto> itemsDto = ItemMapper.toItemDtos(items);
+        log.info("Текущее количество свободных вещей по запросу \"{}\" составляет: {} шт. Список возвращён.",
+                text, items.size());
+        return itemsDto;
     }
 
     private void isUserPresent(User user, Long id) {
