@@ -8,7 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.DirtiesContext;
 import ru.practicum.shareit.exception.NotFoundException;
-import ru.practicum.shareit.exception.ValidationException;
+import ru.practicum.shareit.exception.NotValidException;
 import ru.practicum.shareit.user.dto.UserDto;
 
 import java.util.List;
@@ -59,8 +59,8 @@ class UserServiceImplTest {
     void testAddUser_ShouldThrowExceptionWhenEmailBlank() {
         UserDto userDto = new UserDto(NAME_USER_DTO_ONE, "");
 
-        ValidationException exception = assertThrows(
-                ValidationException.class,
+        NotValidException exception = assertThrows(
+                NotValidException.class,
                 () -> userServiceImpl.addUser(userDto));
 
         assertEquals("Email пользователя не прошёл валидацию.", exception.getMessage());
@@ -72,8 +72,8 @@ class UserServiceImplTest {
         userServiceImpl.addUser(userDtoOne);
         UserDto userDto = new UserDto(NAME_USER_ONE, userDtoOne.getEmail());
 
-        ValidationException exception = assertThrows(
-                ValidationException.class,
+        NotValidException exception = assertThrows(
+                NotValidException.class,
                 () -> userServiceImpl.addUser(userDto));
 
         assertEquals("Email пользователя не прошёл валидацию.", exception.getMessage());
@@ -111,8 +111,8 @@ class UserServiceImplTest {
         UserDto userDtoNew = new UserDto(null, EMAIL_USER_DTO_TWO);
         userDtoNew.setId(userDto1.getId());
 
-        ValidationException exception = assertThrows(
-                ValidationException.class,
+        NotValidException exception = assertThrows(
+                NotValidException.class,
                 () -> userServiceImpl.updateUser(userDtoNew));
 
         assertEquals(String.format("Пользователь с Email %s уже существует.", EMAIL_USER_DTO_TWO),

@@ -4,12 +4,13 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.exception.NotFoundException;
-import ru.practicum.shareit.exception.ValidationException;
+import ru.practicum.shareit.exception.NotValidException;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.mapper.UserMapper;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
 
+import javax.transaction.Transactional;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -21,9 +22,11 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
 
     @Override
+    @Transactional
     public UserDto addUser(UserDto userDto) {
         if (userDto.getEmail() == null) {
-            throw new ValidationException("У пользователя отсутствует ID");
+            log.error("У пользователя отсутствует Email");
+            throw new NotValidException("У пользователя отсутствует Email");
         }
         User user = UserMapper.toUser(userDto);
         user = userRepository.save(user);
@@ -33,12 +36,11 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public UserDto updateUser(UserDto userDto) {
         Optional<User> optionalUser = userRepository.findById(userDto.getId());
-        if (optionalUser.isEmpty()) {
-            throw new NotFoundException(String.format("Пользователь с ИД %d отсутствует в БД.", userDto.getId()));
-        }
-        User oldUser = optionalUser.get();
+        isUserPresent(optionalUser, userDto.getId());
+        User oldUser = optionalUser.orElseThrow();
         String newEmail = userDto.getEmail();
         if (newEmail != null) {
             oldUser.setEmail(newEmail);
@@ -55,10 +57,8 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserDto getUserById(long id) {
         Optional<User> optionalUser = userRepository.findById(id);
-        if (optionalUser.isEmpty()) {
-            throw new NotFoundException(String.format("Пользователь с ИД %d отсутствует в БД.", id));
-        }
-        UserDto userDto = UserMapper.toUserDto(optionalUser.get());
+        isUserPresent(optionalUser, id);
+        UserDto userDto = UserMapper.toUserDto(optionalUser.orElseThrow());
         log.info("Пользователь с ID {} возвращён.", id);
         return userDto;
     }
@@ -74,5 +74,12 @@ public class UserServiceImpl implements UserService {
         List<User> users = userRepository.findAll();
         log.info("Текущее количество пользователей: {}. Список возвращён.", users.size());
         return users.stream().map(UserMapper::toUserDto).collect(Collectors.toList());
+    }
+
+    private void isUserPresent(Optional<User> optionalUser, long userId) {
+        if (optionalUser.isEmpty()) {
+            log.error("Пользователь с ИД {} отсутствует в БД.", userId);
+            throw new NotFoundException(String.format("Пользователь с ИД %d отсутствует в БД.", userId));
+        }
     }
 }

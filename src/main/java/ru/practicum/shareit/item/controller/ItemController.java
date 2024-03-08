@@ -11,7 +11,9 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.item.dto.ItemGetResponseDto;
 import ru.practicum.shareit.item.service.ItemService;
 
 import javax.validation.constraints.Positive;
@@ -40,12 +42,13 @@ public class ItemController {
     }
 
     @GetMapping("/{id}")
-    public ItemDto getItemById(@PathVariable @Positive long id) {
-        return itemService.getItemById(id);
+    public ItemGetResponseDto getItemById(@RequestHeader("X-Sharer-User-Id") long userId,
+                                          @PathVariable @Positive long id) {
+        return itemService.getItemById(userId, id);
     }
 
     @GetMapping
-    public List<ItemDto> getAllItemsByUserId(@RequestHeader("X-Sharer-User-Id") long userId) {
+    public List<ItemGetResponseDto> getAllItemsByUserId(@RequestHeader("X-Sharer-User-Id") long userId) {
         return itemService.getAllItemsByUserId(userId);
     }
 
@@ -55,5 +58,12 @@ public class ItemController {
             return Collections.emptyList();
         }
         return itemService.getItemsBySearch(text);
+    }
+
+    @PostMapping("/{itemId}/comment")
+    public CommentDto createComment(@RequestHeader("X-Sharer-User-Id") long userId,
+                                    @PathVariable @Positive long itemId,
+                                    @RequestBody CommentDto commentDto) {
+        return itemService.addComment(userId, itemId, commentDto);
     }
 }
