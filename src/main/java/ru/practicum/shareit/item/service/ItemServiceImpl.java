@@ -120,9 +120,9 @@ public class ItemServiceImpl implements ItemService {
         List<ItemGetResponseDto> itemGetResponseDtoList = new ArrayList<>();
         for (Item item : items) {
             ItemGetResponseDto itemGetResponseDto = ItemMapper.toItemGetResponseDto(item);
-            addBookingResponseDto(itemGetResponseDto, itemIdToBookings.get(item.getId()));
-            itemGetResponseDto.setComments(!itemIdToComments.containsKey(item.getId())
-                    ? null : CommentMapper.toCommentDtos(itemIdToComments.get(item.getId())));
+            addBookingResponseDto(itemGetResponseDto, itemIdToBookings.getOrDefault(item.getId(), new ArrayList<>()));
+            itemGetResponseDto.setComments(itemIdToComments.containsKey(item.getId()) ?
+                    CommentMapper.toCommentDtos(itemIdToComments.get(item.getId())) : new ArrayList<>());
             itemGetResponseDtoList.add(itemGetResponseDto);
         }
         return itemGetResponseDtoList;
@@ -147,10 +147,7 @@ public class ItemServiceImpl implements ItemService {
                 .filter(booking -> booking.getEnd().isBefore(LocalDateTime.now())
                         && booking.getStatus().equals(BookingStatus.APPROVED))
                 .collect(Collectors.toList());
-        if (bookings.isEmpty()) {
-            throw new NotValidException(String.format("Пользователь с ИД %d не может оставлять комментарии к веши с ИД %d.",
-                    userId, itemId));
-        }
+        isUserBooker(userId, itemId, bookings);
         Comment comment = new Comment(
                 commentDto.getText(),
                 optionalItem.orElseThrow(),
@@ -160,6 +157,13 @@ public class ItemServiceImpl implements ItemService {
         Comment savedComment = commentRepository.save(comment);
         log.info("Добавлен новый комментарий с ID = {}", savedComment.getId());
         return CommentMapper.toCommentDto(savedComment);
+    }
+
+    private void isUserBooker(long userId, long itemId, List<Booking> bookings) {
+        if (bookings.isEmpty()) {
+            throw new NotValidException(String.format("Пользователь с ИД %d не может оставлять комментарии к веши с ИД %d.",
+                    userId, itemId));
+        }
     }
 
     private void addBookingResponseDto(ItemGetResponseDto itemGetResponseDto, List<Booking> bookings) {

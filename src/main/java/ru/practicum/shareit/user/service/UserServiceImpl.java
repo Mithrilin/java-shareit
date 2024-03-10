@@ -24,10 +24,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserDto addUser(UserDto userDto) {
-        if (userDto.getEmail() == null) {
-            log.error("У пользователя отсутствует Email");
-            throw new NotValidException("У пользователя отсутствует Email");
-        }
+        isUserHaveEmail(userDto);
         User user = UserMapper.toUser(userDto);
         user = userRepository.save(user);
         userDto.setId(user.getId());
@@ -80,6 +77,13 @@ public class UserServiceImpl implements UserService {
         if (optionalUser.isEmpty()) {
             log.error("Пользователь с ИД {} отсутствует в БД.", userId);
             throw new NotFoundException(String.format("Пользователь с ИД %d отсутствует в БД.", userId));
+        }
+    }
+
+    private void isUserHaveEmail(UserDto userDto) {
+        if (userDto.getEmail() == null) {
+            log.error("У пользователя отсутствует Email");
+            throw new NotValidException("У пользователя отсутствует Email");
         }
     }
 }

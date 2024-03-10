@@ -10,6 +10,7 @@ import ru.practicum.shareit.booking.dto.BookingDto;
 import ru.practicum.shareit.booking.mapper.BookingMapper;
 import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.repository.BookingRepository;
+import ru.practicum.shareit.exception.ItemAlreadyBookedException;
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.exception.NotOwnerOrBookerException;
 import ru.practicum.shareit.exception.NotValidException;
@@ -55,10 +56,7 @@ public class BookingServiceImpl implements BookingService {
         isBookingPresent(optionalBooking, bookingId);
         Booking booking = optionalBooking.orElseThrow();
         isUserOwner(userId, booking);
-        if (booking.getStatus() == BookingStatus.APPROVED) {
-            log.error("Нельзя менять статус после одобрения.");
-            throw new NotValidException("Нельзя менять статус после одобрения.");
-        }
+        isBookingApproved(booking);
         if (approved) {
             booking.setStatus(BookingStatus.APPROVED);
         } else {
@@ -87,7 +85,6 @@ public class BookingServiceImpl implements BookingService {
         isUserPresent(optionalUser, bookerId);
         List<Booking> bookings;
         BookingState bookingState = checkStateValue(state);
-        Sort sort = Sort.by(Sort.Direction.DESC, "id");
         switch (bookingState) {
             case PAST:
                 bookings = bookingRepository.findByBooker_IdAndEndIsBeforeOrderByIdDesc(bookerId, LocalDateTime.now());
@@ -106,7 +103,8 @@ public class BookingServiceImpl implements BookingService {
                 bookings = bookingRepository.findByBooker_IdAndStatusEqualsOrderByIdDesc(bookerId, BookingStatus.REJECTED);
                 break;
             default:
-                bookings = bookingRepository.findByBooker_IdOrderByIdDesc(bookerId, sort);
+                bookings = bookingRepository.findByBooker_IdOrderByIdDesc(bookerId,
+                        Sort.by(Sort.Direction.DESC, "id"));
         }
         List<BookingDto> bookingDtos = BookingMapper.toBookingDtos(bookings);
         log.info("Текущее количество бронирований в состоянии {} пользователя с ид {} составляет: {} шт. Список возвращён.",
@@ -174,7 +172,7 @@ public class BookingServiceImpl implements BookingService {
         }
         if (!item.getAvailable()) {
             log.error("Вещь с ИД {} уже забронирована.", item.getId());
-            throw new NotValidException(String.format("Вещь с ИД %d уже забронирована.", item.getId()));
+            throw new ItemAlreadyBookedException(String.format("Вещь с ИД %d уже забронирована.", item.getId()));
         }
         if (bookingDto.getStart() == null
                 || bookingDto.getEnd() == null
@@ -214,6 +212,13 @@ public class BookingServiceImpl implements BookingService {
         if (optionalBooking.isEmpty()) {
             log.error("Бронирование с ИД {} отсутствует в БД.", bookingId);
             throw new NotFoundException(String.format("Бронирование с ИД %d отсутствует в БД.", bookingId));
+        }
+    }
+
+    private void isBookingApproved(Booking booking) {
+        if (booking.getStatus() == BookingStatus.APPROVED) {
+            log.error("Нельзя менять статус после одобрения.");
+            throw new NotValidException("Нельзя менять статус после одобрения.");
         }
     }
 }

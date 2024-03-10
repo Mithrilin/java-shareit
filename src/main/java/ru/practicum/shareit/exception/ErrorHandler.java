@@ -23,7 +23,7 @@ public class ErrorHandler {
         return Map.of("errorMessage", e.getMessage());
     }
 
-    @ExceptionHandler({NotValidException.class, ValidationException.class})
+    @ExceptionHandler({NotValidException.class, ValidationException.class, ItemAlreadyBookedException.class})
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Map<String, String> handleValidationException(final RuntimeException e) {
         log.error("Получен статус 400 BAD REQUEST. {}", e.getMessage(), e);
