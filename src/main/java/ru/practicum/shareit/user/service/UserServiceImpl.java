@@ -4,13 +4,15 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.exception.NotFoundException;
-import ru.practicum.shareit.exception.ValidationException;
+import ru.practicum.shareit.exception.NotValidException;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.mapper.UserMapper;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
 
+import javax.transaction.Transactional;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -20,74 +22,68 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
 
     @Override
+    @Transactional
     public UserDto addUser(UserDto userDto) {
-        isEmailValid(userDto);
+        isUserHaveEmail(userDto);
         User user = UserMapper.toUser(userDto);
-        user = userRepository.addUser(user);
+        user = userRepository.save(user);
         userDto.setId(user.getId());
         log.info("Добавлен новый пользователь с ID = {}", user.getId());
         return userDto;
     }
 
     @Override
+    @Transactional
     public UserDto updateUser(UserDto userDto) {
-        User user = userRepository.getUserById(userDto.getId());
-        isUserPresent(user, userDto.getId());
-        String oldEmail = user.getEmail();
+        Optional<User> optionalUser = userRepository.findById(userDto.getId());
+        isUserPresent(optionalUser, userDto.getId());
+        User oldUser = optionalUser.orElseThrow();
         String newEmail = userDto.getEmail();
         if (newEmail != null) {
-            isEmailPresent(newEmail, oldEmail);
-            userRepository.changeEmailInMap(newEmail, oldEmail);
-            user.setEmail(newEmail);
+            oldUser.setEmail(newEmail);
         }
-        if (userDto.getName() != null) {
-            user.setName(userDto.getName());
+        String newName = userDto.getName();
+        if (newName != null) {
+            oldUser.setName(newName);
         }
-        log.info("Пользователь с ID {} обновлён.", user.getId());
-        return UserMapper.toUserDto(user);
+        User updatedUser = userRepository.save(oldUser);
+        log.info("Пользователь с ID {} обновлён.", updatedUser.getId());
+        return UserMapper.toUserDto(updatedUser);
     }
 
     @Override
     public UserDto getUserById(long id) {
-        User user = userRepository.getUserById(id);
-        isUserPresent(user, id);
-        UserDto userDto = UserMapper.toUserDto(user);
+        Optional<User> optionalUser = userRepository.findById(id);
+        isUserPresent(optionalUser, id);
+        UserDto userDto = UserMapper.toUserDto(optionalUser.orElseThrow());
         log.info("Пользователь с ID {} возвращён.", id);
         return userDto;
     }
 
     @Override
     public void deleteUser(long id) {
-        isUserPresent(userRepository.getUserById(id), id);
-        userRepository.deleteUser(id);
+        userRepository.deleteById(id);
         log.info("Пользователь с ID {} удалён.", id);
     }
 
     @Override
     public List<UserDto> getAllUsers() {
-        List<User> users = userRepository.getAllUsers();
+        List<User> users = userRepository.findAll();
         log.info("Текущее количество пользователей: {}. Список возвращён.", users.size());
         return users.stream().map(UserMapper::toUserDto).collect(Collectors.toList());
     }
 
-    private void isUserPresent(User user, Long id) {
-        if (user == null) {
-            throw new NotFoundException(String.format("Пользователь с ИД %d отсутствует в БД.", id));
+    private void isUserPresent(Optional<User> optionalUser, long userId) {
+        if (optionalUser.isEmpty()) {
+            log.error("Пользователь с ИД {} отсутствует в БД.", userId);
+            throw new NotFoundException(String.format("Пользователь с ИД %d отсутствует в БД.", userId));
         }
     }
 
-    private void isEmailPresent(String newEmail, String oldEmail) {
-        if (userRepository.isEmailPresent(newEmail) && !oldEmail.equals(newEmail)) {
-            throw new ValidationException(String.format("Пользователь с Email %s уже существует.", newEmail));
-        }
-    }
-
-    private void isEmailValid(UserDto userDto) {
+    private void isUserHaveEmail(UserDto userDto) {
         if (userDto.getEmail() == null) {
-            throw new RuntimeException("Email пользователя не должен быть null.");
-        }
-        if (userDto.getEmail().isBlank() || userRepository.isEmailPresent(userDto.getEmail())) {
-            throw new ValidationException("Email пользователя не прошёл валидацию.");
+            log.error("У пользователя отсутствует Email");
+            throw new NotValidException("У пользователя отсутствует Email");
         }
     }
 }
