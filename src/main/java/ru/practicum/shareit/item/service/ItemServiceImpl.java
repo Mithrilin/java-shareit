@@ -2,6 +2,9 @@ package ru.practicum.shareit.item.service;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.booking.BookingStatus;
 import ru.practicum.shareit.booking.dto.BookingResponseDto;
@@ -20,6 +23,8 @@ import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.mapper.ItemMapper;
 import ru.practicum.shareit.item.repository.CommentRepository;
 import ru.practicum.shareit.item.repository.ItemRepository;
+import ru.practicum.shareit.request.model.ItemRequest;
+import ru.practicum.shareit.request.repository.ItemRequestRepository;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
 
@@ -40,15 +45,19 @@ public class ItemServiceImpl implements ItemService {
     private final UserRepository userRepository;
     private final BookingRepository bookingRepository;
     private final CommentRepository commentRepository;
+    private final ItemRequestRepository itemRequestRepository;
 
     @Override
     @Transactional
     public ItemDto addItem(long userId, ItemDto itemDto) {
         isItemDtoValid(itemDto);
-        Optional<User> optionalUser = userRepository.findById(userId);
-        isUserPresent(optionalUser, userId);
+        User user = isUserPresent(userId);
         Item item = ItemMapper.toItem(itemDto);
-        item.setOwner(optionalUser.orElseThrow());
+        item.setOwner(user);
+        if (itemDto.getRequestId() != null) {
+            ItemRequest itemRequest = isItemRequestPresent(itemDto.getRequestId());
+            item.setRequest(itemRequest);
+        }
         Item savedItem = itemRepository.save(item);
         log.info("Добавлена новая вещь с ID = {}", savedItem.getId());
         return ItemMapper.toItemDto(savedItem);
@@ -57,11 +66,8 @@ public class ItemServiceImpl implements ItemService {
     @Override
     @Transactional
     public ItemDto updateItem(long userId, ItemDto itemDto) {
-        Optional<User> optionalUser = userRepository.findById(userId);
-        isUserPresent(optionalUser, userId);
-        Optional<Item> optionalItem = itemRepository.findById(itemDto.getId());
-        isItemPresent(optionalItem, itemDto.getId());
-        Item oldItem = optionalItem.orElseThrow();
+        isUserPresent(userId);
+        Item oldItem = isItemPresent(itemDto.getId());
         isUserOwner(oldItem, userId);
         if (itemDto.getAvailable() != null) {
             oldItem.setAvailable(itemDto.getAvailable());
@@ -79,9 +85,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public ItemGetResponseDto getItemById(long userId, long itemId) {
-        Optional<Item> optionalItem = itemRepository.findById(itemId);
-        isItemPresent(optionalItem, itemId);
-        Item item = optionalItem.orElseThrow();
+        Item item = isItemPresent(itemId);
         ItemGetResponseDto itemGetResponseDto = ItemMapper.toItemGetResponseDto(item);
         List<Booking> bookings = bookingRepository.findByItemId(itemGetResponseDto.getId());
         if (userId == item.getOwner().getId()) {
@@ -94,17 +98,53 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    public List<ItemGetResponseDto> getAllItemsByUserId(long userId) {
-        Optional<User> optionalUser = userRepository.findById(userId);
-        isUserPresent(optionalUser, userId);
-        List<ItemGetResponseDto> itemGetResponseDtoList = addBookingAndCommentResponseDto(userId);
-        log.info("Текущее количество вещей пользователя с ид {} составляет: {} шт. Список возвращён.",
-                userId, itemGetResponseDtoList.size());
+    public List<ItemGetResponseDto> getAllItemsByUserId(long userId, int from, int size) {
+        isUserPresent(userId);
+        List<ItemGetResponseDto> itemGetResponseDtoList = addBookingAndCommentResponseDto(userId, from, size);
+        log.info("Список вещей пользователя с ид {} с номера {} размером {} возвращён.",
+                userId, from, size);
         return itemGetResponseDtoList;
     }
 
-    private List<ItemGetResponseDto> addBookingAndCommentResponseDto(long userId) {
-        List<Item> items = itemRepository.findByOwnerIdOrderByIdAsc(userId);
+    @Override
+    public List<ItemDto> getItemsBySearch(String text, int from, int size) {
+        int page = from/size;
+        Sort sort = Sort.by(Sort.Direction.ASC, "id");
+        PageRequest pageRequest = PageRequest.of(page, size, sort);
+        Page<Item> itemsPage = itemRepository.findAllBySearch(text, pageRequest);
+        List<Item> items = itemsPage.getContent();
+        List<ItemDto> itemsDto = ItemMapper.toItemDtos(items);
+        log.info("Список свободных вещей по запросу \"{}\" с номера {} размером {} возвращён.",
+                text, from, size);
+        return itemsDto;
+    }
+
+    @Override
+    public CommentDto addComment(long userId, long itemId, CommentDto commentDto) {
+        Item item = isItemPresent(itemId);
+        User user = isUserPresent(userId);
+        List<Booking> bookings = bookingRepository.findByItemIdAndBookerId(itemId, userId).stream()
+                .filter(booking -> booking.getEnd().isBefore(LocalDateTime.now())
+                        && booking.getStatus().equals(BookingStatus.APPROVED))
+                .collect(Collectors.toList());
+        isUserBooker(userId, itemId, bookings);
+        Comment comment = new Comment(
+                commentDto.getText(),
+                item,
+                user,
+                LocalDateTime.now()
+        );
+        Comment savedComment = commentRepository.save(comment);
+        log.info("Добавлен новый комментарий с ID = {}", savedComment.getId());
+        return CommentMapper.toCommentDto(savedComment);
+    }
+
+    private List<ItemGetResponseDto> addBookingAndCommentResponseDto(long userId, int from, int size) {
+        int page = from/size;
+        Sort sort = Sort.by(Sort.Direction.ASC, "id");
+        PageRequest pageRequest = PageRequest.of(page, size, sort);
+        Page<Item> itemsPage = itemRepository.findByOwnerId(userId, pageRequest);
+        List<Item> items = itemsPage.getContent();
         List<Long> itemIds = items.stream()
                 .map(Item::getId)
                 .collect(Collectors.toList());
@@ -126,37 +166,6 @@ public class ItemServiceImpl implements ItemService {
             itemGetResponseDtoList.add(itemGetResponseDto);
         }
         return itemGetResponseDtoList;
-    }
-
-    @Override
-    public List<ItemDto> getItemsBySearch(String text) {
-        List<Item> items = itemRepository.findAllBySearch(text);
-        List<ItemDto> itemsDto = ItemMapper.toItemDtos(items);
-        log.info("Текущее количество свободных вещей по запросу \"{}\" составляет: {} шт. Список возвращён.",
-                text, items.size());
-        return itemsDto;
-    }
-
-    @Override
-    public CommentDto addComment(long userId, long itemId, CommentDto commentDto) {
-        Optional<Item> optionalItem = itemRepository.findById(itemId);
-        isItemPresent(optionalItem, itemId);
-        Optional<User> optionalUser = userRepository.findById(userId);
-        isUserPresent(optionalUser, userId);
-        List<Booking> bookings = bookingRepository.findByItemIdAndBookerId(itemId, userId).stream()
-                .filter(booking -> booking.getEnd().isBefore(LocalDateTime.now())
-                        && booking.getStatus().equals(BookingStatus.APPROVED))
-                .collect(Collectors.toList());
-        isUserBooker(userId, itemId, bookings);
-        Comment comment = new Comment(
-                commentDto.getText(),
-                optionalItem.orElseThrow(),
-                optionalUser.orElseThrow(),
-                LocalDateTime.now()
-        );
-        Comment savedComment = commentRepository.save(comment);
-        log.info("Добавлен новый комментарий с ID = {}", savedComment.getId());
-        return CommentMapper.toCommentDto(savedComment);
     }
 
     private void isUserBooker(long userId, long itemId, List<Booking> bookings) {
@@ -200,17 +209,30 @@ public class ItemServiceImpl implements ItemService {
         }
     }
 
-    private void isUserPresent(Optional<User> optionalUser, long userId) {
+    private User isUserPresent(long userId) {
+        Optional<User> optionalUser = userRepository.findById(userId);
         if (optionalUser.isEmpty()) {
             log.error("Пользователь с ИД {} отсутствует в БД.", userId);
             throw new NotFoundException(String.format("Пользователь с ИД %d отсутствует в БД.", userId));
         }
+        return optionalUser.get();
     }
 
-    private void isItemPresent(Optional<Item> optionalItem, long itemId) {
+    private Item isItemPresent(long itemId) {
+        Optional<Item> optionalItem = itemRepository.findById(itemId);
         if (optionalItem.isEmpty()) {
             log.error("Вещь с ИД {} отсутствует в БД.", itemId);
             throw new NotFoundException(String.format("Вещь с ИД %d отсутствует в БД.", itemId));
         }
+        return optionalItem.get();
+    }
+
+    private ItemRequest isItemRequestPresent(long requestId) {
+        Optional<ItemRequest> optionalItemRequest = itemRequestRepository.findById(requestId);
+        if (optionalItemRequest.isEmpty()) {
+            log.error("Запрос с ИД {} отсутствует в БД.", requestId);
+            throw new NotFoundException(String.format("Запрос с ИД %d отсутствует в БД.", requestId));
+        }
+        return optionalItemRequest.get();
     }
 }

@@ -2,6 +2,8 @@ package ru.practicum.shareit.booking.service;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.booking.BookingState;
@@ -35,12 +37,12 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional
     public BookingDto addBooking(long bookerId, BookingDto bookingDto) {
-        Optional<User> optionalUser = userRepository.findById(bookerId);
-        Optional<Item> optionalItem = itemRepository.findById(bookingDto.getItemId());
-        isBookingValid(optionalUser, optionalItem, bookerId, bookingDto);
+        User user = isUserPresent(bookerId);
+        Item item = isItemPresent(bookingDto.getItemId());
+        isBookingValid(bookerId, bookingDto, item);
         Booking booking = BookingMapper.toBooking(bookingDto);
-        booking.setItem(optionalItem.orElseThrow());
-        booking.setBooker(optionalUser.orElseThrow());
+        booking.setItem(item);
+        booking.setBooker(user);
         booking.setStatus(BookingStatus.WAITING);
         Booking savedBooking = bookingRepository.save(booking);
         log.info("Добавлено бронирование с ID = {}", savedBooking.getId());
@@ -50,11 +52,8 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional
     public BookingDto approveBooking(long userId, long bookingId, boolean approved) {
-        Optional<User> optionalUser = userRepository.findById(userId);
-        isUserPresent(optionalUser, userId);
-        Optional<Booking> optionalBooking = bookingRepository.findById(bookingId);
-        isBookingPresent(optionalBooking, bookingId);
-        Booking booking = optionalBooking.orElseThrow();
+        isUserPresent(userId);
+        Booking booking = isBookingPresent(bookingId);
         isUserOwner(userId, booking);
         isBookingApproved(booking);
         if (approved) {
@@ -69,78 +68,76 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public BookingDto getBookingById(long userId, long bookingId) {
-        Optional<Booking> optionalBooking = bookingRepository.findById(bookingId);
-        isBookingPresent(optionalBooking, bookingId);
-        Booking booking = optionalBooking.orElseThrow();
-        Optional<User> optionalUser = userRepository.findById(userId);
-        isUserPresent(optionalUser, userId);
+        Booking booking = isBookingPresent(bookingId);
+        isUserPresent(userId);
         isUserOwnerOrBooker(userId, booking);
         log.info("Бронирование с ID {} возвращено.", bookingId);
         return BookingMapper.toBookingDto(booking);
     }
 
     @Override
-    public List<BookingDto> getAllBookingByBookerId(long bookerId, String state) {
-        Optional<User> optionalUser = userRepository.findById(bookerId);
-        isUserPresent(optionalUser, bookerId);
-        List<Booking> bookings;
+    public List<BookingDto> getAllBookingByBookerId(long bookerId, String state, int from, int size) {
+        isUserPresent(bookerId);
+        Page<Booking> bookingsPage;
         BookingState bookingState = checkStateValue(state);
+        int page = from/size;
+        Sort sort = Sort.by(Sort.Direction.DESC, "id");
+        PageRequest pageRequest = PageRequest.of(page, size, sort);
         switch (bookingState) {
             case PAST:
-                bookings = bookingRepository.findByBooker_IdAndEndIsBeforeOrderByIdDesc(bookerId, LocalDateTime.now());
+                bookingsPage = bookingRepository.findByBooker_IdAndEndIsBefore(bookerId, LocalDateTime.now(), pageRequest);
                 break;
             case FUTURE:
-                bookings = bookingRepository.findByBooker_IdAndStartIsAfterOrderByIdDesc(bookerId, LocalDateTime.now());
+                bookingsPage = bookingRepository.findByBooker_IdAndStartIsAfter(bookerId, LocalDateTime.now(), pageRequest);
                 break;
             case CURRENT:
-                bookings = bookingRepository.findAllByBookerIdWithStateCurrent(bookerId, LocalDateTime.now(),
-                        Sort.by(Sort.Direction.ASC, "id"));
+                bookingsPage = bookingRepository.findAllByBookerIdWithStateCurrent(bookerId, LocalDateTime.now(), pageRequest);
                 break;
             case WAITING:
-                bookings = bookingRepository.findByBooker_IdAndStatusEqualsOrderByIdDesc(bookerId, BookingStatus.WAITING);
+                bookingsPage = bookingRepository.findByBooker_IdAndStatusEquals(bookerId, BookingStatus.WAITING, pageRequest);
                 break;
             case REJECTED:
-                bookings = bookingRepository.findByBooker_IdAndStatusEqualsOrderByIdDesc(bookerId, BookingStatus.REJECTED);
+                bookingsPage = bookingRepository.findByBooker_IdAndStatusEquals(bookerId, BookingStatus.REJECTED, pageRequest);
                 break;
             default:
-                bookings = bookingRepository.findByBooker_IdOrderByIdDesc(bookerId,
-                        Sort.by(Sort.Direction.DESC, "id"));
+                bookingsPage = bookingRepository.findByBooker_Id(bookerId, pageRequest);
         }
-        List<BookingDto> bookingDtos = BookingMapper.toBookingDtos(bookings);
-        log.info("Текущее количество бронирований в состоянии {} пользователя с ид {} составляет: {} шт. Список возвращён.",
-                state, bookerId, bookings.size());
+        List<BookingDto> bookingDtos = BookingMapper.toBookingDtos(bookingsPage.getContent());
+        log.info("Список бронирований в состоянии {} пользователя с ид {} с номера {} размером {} возвращён.",
+                state, bookerId, from, size);
         return bookingDtos;
     }
 
     @Override
-    public List<BookingDto> getAllBookingByOwnerId(long ownerId, String state) {
-        Optional<User> optionalUser = userRepository.findById(ownerId);
-        isUserPresent(optionalUser, ownerId);
-        List<Booking> bookings;
+    public List<BookingDto> getAllBookingByOwnerId(long ownerId, String state, int from, int size) {
+        isUserPresent(ownerId);
+        Page<Booking> bookingsPage;
         BookingState bookingState = checkStateValue(state);
+        int page = from/size;
         Sort sort = Sort.by(Sort.Direction.DESC, "id");
+        PageRequest pageRequest = PageRequest.of(page, size, sort);
         switch (bookingState) {
             case PAST:
-                bookings = bookingRepository.findByOwnerIdWithStatePast(ownerId, LocalDateTime.now(), sort);
+                bookingsPage = bookingRepository.findByOwnerIdWithStatePast(ownerId, LocalDateTime.now(), pageRequest);
                 break;
             case FUTURE:
-                bookings = bookingRepository.findByOwnerIdWithStateFuture(ownerId, LocalDateTime.now(), sort);
+                bookingsPage = bookingRepository.findByOwnerIdWithStateFuture(ownerId, LocalDateTime.now(), pageRequest);
                 break;
             case CURRENT:
-                bookings = bookingRepository.findAllByOwnerIdWithStateCurrent(ownerId, LocalDateTime.now(), sort);
+                bookingsPage = bookingRepository.findAllByOwnerIdWithStateCurrent(ownerId, LocalDateTime.now(), pageRequest);
                 break;
             case WAITING:
-                bookings = bookingRepository.findByOwnerIdAndStatus(ownerId, BookingStatus.WAITING, sort);
+                bookingsPage = bookingRepository.findByOwnerIdAndStatus(ownerId, BookingStatus.WAITING, pageRequest);
                 break;
             case REJECTED:
-                bookings = bookingRepository.findByOwnerIdAndStatus(ownerId, BookingStatus.REJECTED, sort);
+                bookingsPage = bookingRepository.findByOwnerIdAndStatus(ownerId, BookingStatus.REJECTED, pageRequest);
                 break;
             default:
-                bookings = bookingRepository.findByItemOwnerIdOrderByIdDesc(ownerId);
+                bookingsPage = bookingRepository.findByItemOwnerId(ownerId, pageRequest);
         }
-        List<BookingDto> bookingDtos = BookingMapper.toBookingDtos(bookings);
-        log.info("Текущее количество бронирований в состоянии {} владельца вещей с ид {} составляет: {} шт. Список возвращён.",
-                state, ownerId, bookings.size());
+        List<BookingDto> bookingDtos = BookingMapper.toBookingDtos(bookingsPage.getContent());
+        log.info("Список бронирований в состоянии {} владельца вещей с ид {} с номера {} размером {} возвращён.",
+                state, ownerId, from, size);
         return bookingDtos;
     }
 
@@ -155,16 +152,9 @@ public class BookingServiceImpl implements BookingService {
         return bookingState;
     }
 
-    private void isBookingValid(Optional<User> optionalUser,
-                                Optional<Item> optionalItem,
-                                long bookerId,
-                                BookingDto bookingDto) {
-        isUserPresent(optionalUser, bookerId);
-        if (optionalItem.isEmpty()) {
-            log.error("Вещь с ИД {} отсутствует в БД.", bookingDto.getItemId());
-            throw new NotFoundException(String.format("Вещь с ИД %d отсутствует в БД.", bookingDto.getItemId()));
-        }
-        Item item = optionalItem.get();
+    private void isBookingValid(long bookerId,
+                                BookingDto bookingDto,
+                                Item item) {
         if (item.getOwner().getId() == bookerId) {
             log.error("Пользователь с ИД {} является владельцем вещи с ИД {}.", bookerId, item.getId());
             throw new NotOwnerOrBookerException(String.format("Пользователь с ИД %d является владельцем вещи с ИД %d.",
@@ -201,18 +191,31 @@ public class BookingServiceImpl implements BookingService {
         }
     }
 
-    private void isUserPresent(Optional<User> optionalUser, long userId) {
+    private User isUserPresent(long userId) {
+        Optional<User> optionalUser = userRepository.findById(userId);
         if (optionalUser.isEmpty()) {
             log.error("Пользователь с ИД {} отсутствует в БД.", userId);
             throw new NotFoundException(String.format("Пользователь с ИД %d отсутствует в БД.", userId));
         }
+        return optionalUser.get();
     }
 
-    private void isBookingPresent(Optional<Booking> optionalBooking, long bookingId) {
+    private Item isItemPresent(long itemId) {
+        Optional<Item> optionalItem = itemRepository.findById(itemId);
+        if (optionalItem.isEmpty()) {
+            log.error("Вещь с ИД {} отсутствует в БД.", itemId);
+            throw new NotFoundException(String.format("Вещь с ИД %d отсутствует в БД.", itemId));
+        }
+        return optionalItem.get();
+    }
+
+    private Booking isBookingPresent(long bookingId) {
+        Optional<Booking> optionalBooking = bookingRepository.findById(bookingId);
         if (optionalBooking.isEmpty()) {
             log.error("Бронирование с ИД {} отсутствует в БД.", bookingId);
             throw new NotFoundException(String.format("Бронирование с ИД %d отсутствует в БД.", bookingId));
         }
+        return optionalBooking.get();
     }
 
     private void isBookingApproved(Booking booking) {
