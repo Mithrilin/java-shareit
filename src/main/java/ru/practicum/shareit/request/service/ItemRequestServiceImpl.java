@@ -57,7 +57,7 @@ public class ItemRequestServiceImpl implements ItemRequestService {
     public List<ItemRequestDto> getAllItemRequests(long userId, int from, int size) {
         isUserPresent(userId);
         int page = from/size;
-        Sort sort = Sort.by(Sort.Direction.DESC, "id");
+        Sort sort = Sort.by(Sort.Direction.DESC, "created");
         PageRequest pageRequest = PageRequest.of(page, size, sort);
         Page<ItemRequest> itemRequestPage = itemRequestRepository.findByRequestorIdNot(userId, pageRequest);
         List<ItemRequest> itemRequests = itemRequestPage.getContent();
@@ -67,7 +67,8 @@ public class ItemRequestServiceImpl implements ItemRequestService {
     }
 
     @Override
-    public ItemRequestDto getItemRequestById(long itemRequestId) {
+    public ItemRequestDto getItemRequestById(long userId, long itemRequestId) {
+        isUserPresent(userId);
         ItemRequest itemRequest = isItemRequestPresent(itemRequestId);
         List<Item> items = itemRepository.findByRequestId(itemRequest.getId());
         List<ItemDto> itemDtos = ItemMapper.toItemDtos(items);

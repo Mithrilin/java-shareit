@@ -81,7 +81,7 @@ public class BookingServiceImpl implements BookingService {
         Page<Booking> bookingsPage;
         BookingState bookingState = checkStateValue(state);
         int page = from/size;
-        Sort sort = Sort.by(Sort.Direction.DESC, "id");
+        Sort sort = Sort.by(Sort.Direction.DESC, "start");
         PageRequest pageRequest = PageRequest.of(page, size, sort);
         switch (bookingState) {
             case PAST:
@@ -114,7 +114,7 @@ public class BookingServiceImpl implements BookingService {
         Page<Booking> bookingsPage;
         BookingState bookingState = checkStateValue(state);
         int page = from/size;
-        Sort sort = Sort.by(Sort.Direction.DESC, "id");
+        Sort sort = Sort.by(Sort.Direction.DESC, "start");
         PageRequest pageRequest = PageRequest.of(page, size, sort);
         switch (bookingState) {
             case PAST:
