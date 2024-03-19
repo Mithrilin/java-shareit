@@ -26,10 +26,10 @@ public class UserServiceImpl implements UserService {
     public UserDto addUser(UserDto userDto) {
         isUserHaveEmail(userDto);
         User user = UserMapper.toUser(userDto);
-        user = userRepository.save(user);
-        userDto.setId(user.getId());
-        log.info("Добавлен новый пользователь с ID = {}", user.getId());
-        return userDto;
+        User returnedUser = userRepository.save(user);
+        UserDto returnedUserDto = UserMapper.toUserDto(returnedUser);
+        log.info("Добавлен новый пользователь с ID = {}", returnedUserDto.getId());
+        return returnedUserDto;
     }
 
     @Override
