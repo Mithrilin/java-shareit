@@ -107,6 +107,21 @@ class UserServiceImplTest {
         assertEquals("У пользователя отсутствует Email", exception.getMessage());
     }
 
+    @Test
+    @DisplayName("Обновление пользователя, когда пользователь валидный")
+    void updateUser_whenNewUserValid_thenUserUpdated() {
+        long userId = 1;
+        User oldUser = users.get(0);
+        oldUser.setId(userId);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(oldUser));
+
+
+        UserDto returnedUserDto = new UserDto("newUser", "newEmail");
+        returnedUserDto.setId(userId);
+//        when(userRepository.save(userId)).thenReturn(Optional.of(oldUser));
+
+    }
+
     private List<User> usersBuilder() {
         List<User> users = new ArrayList<>();
         for (int i = 1; i < 11; i++) {
