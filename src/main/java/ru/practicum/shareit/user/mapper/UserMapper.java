@@ -4,6 +4,9 @@ import lombok.experimental.UtilityClass;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.model.User;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @UtilityClass
 public class UserMapper {
 
@@ -23,5 +26,9 @@ public class UserMapper {
         );
         user.setId(userDto.getId());
         return user;
+    }
+
+    public static List<UserDto> toUserDtos(List<User> users) {
+        return users.stream().map(UserMapper::toUserDto).collect(Collectors.toList());
     }
 }

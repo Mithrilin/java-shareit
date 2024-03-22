@@ -108,7 +108,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public List<ItemDto> getItemsBySearch(String text, int from, int size) {
-        int page = from/size;
+        int page = from / size;
         Sort sort = Sort.by(Sort.Direction.ASC, "id");
         PageRequest pageRequest = PageRequest.of(page, size, sort);
         Page<Item> itemsPage = itemRepository.findAllBySearch(text, pageRequest);
@@ -140,7 +140,7 @@ public class ItemServiceImpl implements ItemService {
     }
 
     private List<ItemGetResponseDto> addBookingAndCommentResponseDto(long userId, int from, int size) {
-        int page = from/size;
+        int page = from / size;
         Sort sort = Sort.by(Sort.Direction.ASC, "id");
         PageRequest pageRequest = PageRequest.of(page, size, sort);
         Page<Item> itemsPage = itemRepository.findByOwnerId(userId, pageRequest);
@@ -170,6 +170,7 @@ public class ItemServiceImpl implements ItemService {
 
     private void isUserBooker(long userId, long itemId, List<Booking> bookings) {
         if (bookings.isEmpty()) {
+            log.error("Пользователь с ИД {} не может оставлять комментарии к веши с ИД {}.", userId, itemId);
             throw new NotValidException(String.format("Пользователь с ИД %d не может оставлять комментарии к веши с ИД %d.",
                     userId, itemId));
         }

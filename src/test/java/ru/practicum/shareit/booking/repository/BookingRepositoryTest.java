@@ -1,6 +1,5 @@
 package ru.practicum.shareit.booking.repository;
 
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -39,17 +38,13 @@ class BookingRepositoryTest {
         items = itemBuilder();
     }
 
-    @AfterEach
-    void tearDown() {
-    }
-
     @Test
     @DisplayName("Получение пустого списка бронирований в состоянии PAST для пользователя с ид 1, когда БД пустая")
     void findByBooker_IdAndEndIsBefore_whenEmptyDatabase_thenReturnedEmptyList() {
         long bookerId = 1;
         int from = 0;
         int size = 1;
-        int page = from/size;
+        int page = from / size;
         Sort sort = Sort.by(Sort.Direction.DESC, "start");
         PageRequest pageRequest = PageRequest.of(page, size, sort);
         List<Booking> bookings = bookingRepository.findByBooker_IdAndEndIsBefore(bookerId, LocalDateTime.now(),
@@ -71,7 +66,7 @@ class BookingRepositoryTest {
         bookingRepository.save(booking);
         int from = 0;
         int size = 1;
-        int page = from/size;
+        int page = from / size;
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "start"));
 
         List<Booking> bookings = bookingRepository.findByBooker_IdAndEndIsBefore(user.getId(), LocalDateTime.now(),
@@ -97,7 +92,7 @@ class BookingRepositoryTest {
         bookingRepository.save(booking);
         int from = 0;
         int size = 1;
-        int page = from/size;
+        int page = from / size;
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "start"));
 
         List<Booking> bookings = bookingRepository.findByBooker_IdAndEndIsBefore(user2.getId(), LocalDateTime.now(),
@@ -120,10 +115,280 @@ class BookingRepositoryTest {
         bookingRepository.save(booking);
         int from = 0;
         int size = 1;
-        int page = from/size;
+        int page = from / size;
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "start"));
 
         List<Booking> bookings = bookingRepository.findByBooker_IdAndEndIsBefore(user.getId(), LocalDateTime.now(),
+                pageRequest).getContent();
+
+        assertTrue(bookings.isEmpty());
+    }
+
+    @Test
+    @DisplayName("Получение пустого списка бронирований в состоянии PAST для владельца вещи, когда БД пустая")
+    void findByOwnerIdWithStatePast_whenEmptyDatabase_thenReturnedEmptyList() {
+        long bookerId = 1;
+        int from = 0;
+        int size = 1;
+        int page = from / size;
+        Sort sort = Sort.by(Sort.Direction.DESC, "start");
+        PageRequest pageRequest = PageRequest.of(page, size, sort);
+        List<Booking> bookings = bookingRepository.findByOwnerIdWithStatePast(bookerId, LocalDateTime.now(),
+                pageRequest).getContent();
+
+        assertTrue(bookings.isEmpty());
+    }
+
+    @Test
+    @DisplayName("Получение списка бронирований в состоянии PAST для владельца вещи, когда 1 бронирование")
+    void findByOwnerIdWithStatePast_when1CorrectBooking_thenReturned1Booking() {
+        User user1 = userRepository.save(users.get(0));
+        User user2 = userRepository.save(users.get(1));
+        Item item = itemRepository.save(items.get(0));
+        Booking booking = bookingBuilder(user2, item);
+        LocalDateTime start = LocalDateTime.now().minusDays(2);
+        booking.setStart(start);
+        LocalDateTime end = LocalDateTime.now().minusDays(1);
+        booking.setEnd(end);
+        bookingRepository.save(booking);
+        int from = 0;
+        int size = 1;
+        int page = from / size;
+        PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "start"));
+
+        List<Booking> bookings = bookingRepository.findByOwnerIdWithStatePast(user1.getId(), LocalDateTime.now(),
+                pageRequest).getContent();
+
+        assertEquals(1, bookings.size());
+        booking.setId(bookings.get(0).getId());
+        assertEquals(booking, bookings.get(0));
+    }
+
+    @Test
+    @DisplayName("Получение пустого списка бронирований в состоянии PAST для владельца вещи, когда нет бронирований " +
+            "этой вещи")
+    void findByOwnerIdWithStatePast_whenBookingWithoutCorrectBookerId_thenReturnedEmptyList() {
+        User user1 = userRepository.save(users.get(0));
+        User user2 = userRepository.save(users.get(1));
+        User user3 = userRepository.save(users.get(2));
+        Item item1 = itemRepository.save(items.get(0));
+        Item item2 = itemRepository.save(items.get(0));
+        Booking booking = bookingBuilder(user3, item1);
+        LocalDateTime start = LocalDateTime.now().minusDays(2);
+        booking.setStart(start);
+        LocalDateTime end = LocalDateTime.now().minusDays(1);
+        booking.setEnd(end);
+        bookingRepository.save(booking);
+        int from = 0;
+        int size = 1;
+        int page = from / size;
+        PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "start"));
+
+        List<Booking> bookings = bookingRepository.findByOwnerIdWithStatePast(user2.getId(), LocalDateTime.now(),
+                pageRequest).getContent();
+
+        assertTrue(bookings.isEmpty());
+    }
+
+    @Test
+    @DisplayName("Получение пустого списка бронирований в состоянии PAST для владельца вещи, когда нет бронирований " +
+            "с состоянием PAST")
+    void findByOwnerIdWithStatePast_whenBookingWithoutCorrectEnd_thenReturnedEmptyList() {
+        User user1 = userRepository.save(users.get(0));
+        User user2 = userRepository.save(users.get(0));
+        Item item = itemRepository.save(items.get(0));
+        Booking booking = bookingBuilder(user2, item);
+        LocalDateTime start = LocalDateTime.now().minusDays(2);
+        booking.setStart(start);
+        LocalDateTime end = LocalDateTime.now().plusDays(1);
+        booking.setEnd(end);
+        bookingRepository.save(booking);
+        int from = 0;
+        int size = 1;
+        int page = from / size;
+        PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "start"));
+
+        List<Booking> bookings = bookingRepository.findByOwnerIdWithStatePast(user1.getId(), LocalDateTime.now(),
+                pageRequest).getContent();
+
+        assertTrue(bookings.isEmpty());
+    }
+
+    @Test
+    @DisplayName("Получение пустого списка бронирований в состоянии Future для владельца вещи, когда БД пустая")
+    void findByOwnerIdWithStateFuture_whenEmptyDatabase_thenReturnedEmptyList() {
+        long bookerId = 1;
+        int from = 0;
+        int size = 1;
+        int page = from / size;
+        Sort sort = Sort.by(Sort.Direction.DESC, "start");
+        PageRequest pageRequest = PageRequest.of(page, size, sort);
+        List<Booking> bookings = bookingRepository.findByOwnerIdWithStateFuture(bookerId, LocalDateTime.now(),
+                pageRequest).getContent();
+
+        assertTrue(bookings.isEmpty());
+    }
+
+    @Test
+    @DisplayName("Получение списка бронирований в состоянии Future для владельца вещи, когда 1 бронирование")
+    void findByOwnerIdWithStateFuture_when1CorrectBooking_thenReturned1Booking() {
+        User user1 = userRepository.save(users.get(0));
+        User user2 = userRepository.save(users.get(1));
+        Item item = itemRepository.save(items.get(0));
+        Booking booking = bookingBuilder(user2, item);
+        LocalDateTime start = LocalDateTime.now().plusDays(1);
+        booking.setStart(start);
+        LocalDateTime end = LocalDateTime.now().plusDays(2);
+        booking.setEnd(end);
+        bookingRepository.save(booking);
+        int from = 0;
+        int size = 1;
+        int page = from / size;
+        PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "start"));
+
+        List<Booking> bookings = bookingRepository.findByOwnerIdWithStateFuture(user1.getId(), LocalDateTime.now(),
+                pageRequest).getContent();
+
+        assertEquals(1, bookings.size());
+        booking.setId(bookings.get(0).getId());
+        assertEquals(booking, bookings.get(0));
+    }
+
+    @Test
+    @DisplayName("Получение пустого списка бронирований в состоянии Future для владельца вещи, когда нет бронирований " +
+            "этой вещи")
+    void findByOwnerIdWithStateFuture_whenBookingWithoutCorrectBookerId_thenReturnedEmptyList() {
+        User user1 = userRepository.save(users.get(0));
+        User user2 = userRepository.save(users.get(1));
+        User user3 = userRepository.save(users.get(2));
+        Item item1 = itemRepository.save(items.get(0));
+        Item item2 = itemRepository.save(items.get(0));
+        Booking booking = bookingBuilder(user3, item1);
+        LocalDateTime start = LocalDateTime.now().plusDays(1);
+        booking.setStart(start);
+        LocalDateTime end = LocalDateTime.now().plusDays(2);
+        booking.setEnd(end);
+        bookingRepository.save(booking);
+        int from = 0;
+        int size = 1;
+        int page = from / size;
+        PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "start"));
+
+        List<Booking> bookings = bookingRepository.findByOwnerIdWithStateFuture(user2.getId(), LocalDateTime.now(),
+                pageRequest).getContent();
+
+        assertTrue(bookings.isEmpty());
+    }
+
+    @Test
+    @DisplayName("Получение пустого списка бронирований в состоянии Future для владельца вещи, когда нет бронирований " +
+            "с состоянием Future")
+    void findByOwnerIdWithStateFuture_whenBookingWithoutCorrectEnd_thenReturnedEmptyList() {
+        User user1 = userRepository.save(users.get(0));
+        User user2 = userRepository.save(users.get(0));
+        Item item = itemRepository.save(items.get(0));
+        Booking booking = bookingBuilder(user2, item);
+        LocalDateTime start = LocalDateTime.now().minusDays(2);
+        booking.setStart(start);
+        LocalDateTime end = LocalDateTime.now().minusDays(1);
+        booking.setEnd(end);
+        bookingRepository.save(booking);
+        int from = 0;
+        int size = 1;
+        int page = from / size;
+        PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "start"));
+
+        List<Booking> bookings = bookingRepository.findByOwnerIdWithStateFuture(user1.getId(), LocalDateTime.now(),
+                pageRequest).getContent();
+
+        assertTrue(bookings.isEmpty());
+    }
+
+    @Test
+    @DisplayName("Получение пустого списка бронирований в состоянии Current для владельца вещи, когда БД пустая")
+    void findByByOwnerIdWithStateCurrent_whenEmptyDatabase_thenReturnedEmptyList() {
+        long bookerId = 1;
+        int from = 0;
+        int size = 1;
+        int page = from / size;
+        Sort sort = Sort.by(Sort.Direction.DESC, "start");
+        PageRequest pageRequest = PageRequest.of(page, size, sort);
+        List<Booking> bookings = bookingRepository.findByByOwnerIdWithStateCurrent(bookerId, LocalDateTime.now(),
+                pageRequest).getContent();
+
+        assertTrue(bookings.isEmpty());
+    }
+
+    @Test
+    @DisplayName("Получение списка бронирований в состоянии Current для владельца вещи, когда 1 бронирование")
+    void findByByOwnerIdWithStateCurrent_when1CorrectBooking_thenReturned1Booking() {
+        User user1 = userRepository.save(users.get(0));
+        User user2 = userRepository.save(users.get(1));
+        Item item = itemRepository.save(items.get(0));
+        Booking booking = bookingBuilder(user2, item);
+        LocalDateTime start = LocalDateTime.now().minusDays(1);
+        booking.setStart(start);
+        LocalDateTime end = LocalDateTime.now().plusDays(2);
+        booking.setEnd(end);
+        bookingRepository.save(booking);
+        int from = 0;
+        int size = 1;
+        int page = from / size;
+        PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "start"));
+
+        List<Booking> bookings = bookingRepository.findByByOwnerIdWithStateCurrent(user1.getId(), LocalDateTime.now(),
+                pageRequest).getContent();
+
+        assertEquals(1, bookings.size());
+        booking.setId(bookings.get(0).getId());
+        assertEquals(booking, bookings.get(0));
+    }
+
+    @Test
+    @DisplayName("Получение пустого списка бронирований в состоянии Current для владельца вещи, когда нет бронирований " +
+            "этой вещи")
+    void findByByOwnerIdWithStateCurrent_whenBookingWithoutCorrectBookerId_thenReturnedEmptyList() {
+        User user1 = userRepository.save(users.get(0));
+        User user2 = userRepository.save(users.get(1));
+        User user3 = userRepository.save(users.get(2));
+        Item item1 = itemRepository.save(items.get(0));
+        Item item2 = itemRepository.save(items.get(0));
+        Booking booking = bookingBuilder(user3, item1);
+        LocalDateTime start = LocalDateTime.now().minusDays(1);
+        booking.setStart(start);
+        LocalDateTime end = LocalDateTime.now().plusDays(2);
+        booking.setEnd(end);
+        bookingRepository.save(booking);
+        int from = 0;
+        int size = 1;
+        int page = from / size;
+        PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "start"));
+
+        List<Booking> bookings = bookingRepository.findByByOwnerIdWithStateCurrent(user2.getId(), LocalDateTime.now(),
+                pageRequest).getContent();
+
+        assertTrue(bookings.isEmpty());
+    }
+
+    @Test
+    @DisplayName("Получение пустого списка бронирований в состоянии Current для владельца вещи, когда нет бронирований " +
+            "с состоянием Current")
+    void findByByOwnerIdWithStateCurrent_whenBookingWithoutCorrectEnd_thenReturnedEmptyList() {
+        User user1 = userRepository.save(users.get(0));
+        User user2 = userRepository.save(users.get(0));
+        Item item = itemRepository.save(items.get(0));
+        Booking booking = bookingBuilder(user2, item);
+        LocalDateTime start = LocalDateTime.now().minusDays(2);
+        booking.setStart(start);
+        LocalDateTime end = LocalDateTime.now().minusDays(1);
+        booking.setEnd(end);
+        bookingRepository.save(booking);
+        int from = 0;
+        int size = 1;
+        int page = from / size;
+        PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "start"));
+
+        List<Booking> bookings = bookingRepository.findByByOwnerIdWithStateCurrent(user1.getId(), LocalDateTime.now(),
                 pageRequest).getContent();
 
         assertTrue(bookings.isEmpty());
@@ -135,7 +400,7 @@ class BookingRepositoryTest {
         long bookerId = 1;
         int from = 0;
         int size = 1;
-        int page = from/size;
+        int page = from / size;
         Sort sort = Sort.by(Sort.Direction.DESC, "start");
         PageRequest pageRequest = PageRequest.of(page, size, sort);
         List<Booking> bookings = bookingRepository.findByBooker_IdAndStatusEquals(bookerId, BookingStatus.WAITING,
@@ -157,7 +422,7 @@ class BookingRepositoryTest {
         bookingRepository.save(booking);
         int from = 0;
         int size = 1;
-        int page = from/size;
+        int page = from / size;
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "start"));
 
         List<Booking> bookings = bookingRepository.findByBooker_IdAndStatusEquals(user.getId(), BookingStatus.WAITING,
@@ -183,7 +448,7 @@ class BookingRepositoryTest {
         bookingRepository.save(booking);
         int from = 0;
         int size = 1;
-        int page = from/size;
+        int page = from / size;
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "start"));
 
         List<Booking> bookings = bookingRepository.findByBooker_IdAndStatusEquals(user2.getId(), BookingStatus.WAITING,
@@ -206,10 +471,100 @@ class BookingRepositoryTest {
         bookingRepository.save(booking);
         int from = 0;
         int size = 1;
-        int page = from/size;
+        int page = from / size;
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "start"));
 
         List<Booking> bookings = bookingRepository.findByBooker_IdAndStatusEquals(user.getId(), BookingStatus.REJECTED,
+                pageRequest).getContent();
+
+        assertTrue(bookings.isEmpty());
+    }
+
+    @Test
+    @DisplayName("Получение пустого списка бронирований в состоянии WAITING для владельца вещи, когда БД пустая")
+    void findByOwnerIdAndStatus_whenEmptyDatabase_thenReturnedEmptyList() {
+        long bookerId = 1;
+        int from = 0;
+        int size = 1;
+        int page = from / size;
+        Sort sort = Sort.by(Sort.Direction.DESC, "start");
+        PageRequest pageRequest = PageRequest.of(page, size, sort);
+        List<Booking> bookings = bookingRepository.findByOwnerIdAndStatus(bookerId, BookingStatus.WAITING,
+                pageRequest).getContent();
+
+        assertTrue(bookings.isEmpty());
+    }
+
+    @Test
+    @DisplayName("Получение списка бронирований в состоянии WAITING для владельца вещи, когда 1 бронирование")
+    void findByOwnerIdAndStatus_when1CorrectBooking_thenReturned1Booking() {
+        User user1 = userRepository.save(users.get(0));
+        User user2 = userRepository.save(users.get(0));
+        Item item = itemRepository.save(items.get(0));
+        Booking booking = bookingBuilder(user2, item);
+        LocalDateTime start = LocalDateTime.now().minusDays(2);
+        booking.setStart(start);
+        LocalDateTime end = LocalDateTime.now().minusDays(1);
+        booking.setEnd(end);
+        bookingRepository.save(booking);
+        int from = 0;
+        int size = 1;
+        int page = from / size;
+        PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "start"));
+
+        List<Booking> bookings = bookingRepository.findByOwnerIdAndStatus(user1.getId(), BookingStatus.WAITING,
+                pageRequest).getContent();
+
+        assertEquals(1, bookings.size());
+        booking.setId(bookings.get(0).getId());
+        assertEquals(booking, bookings.get(0));
+    }
+
+    @Test
+    @DisplayName("Получение пустого списка бронирований в состоянии WAITING для владельца вещи, когда нет бронирований " +
+            "этой вещи")
+    void findByOwnerIdAndStatus_whenBookingWithoutCorrectBookerId_thenReturnedEmptyList() {
+        User user1 = userRepository.save(users.get(0));
+        User user2 = userRepository.save(users.get(1));
+        User user3 = userRepository.save(users.get(2));
+        Item item1 = itemRepository.save(items.get(0));
+        Item item2 = itemRepository.save(items.get(0));
+        Booking booking = bookingBuilder(user3, item1);
+        LocalDateTime start = LocalDateTime.now().minusDays(2);
+        booking.setStart(start);
+        LocalDateTime end = LocalDateTime.now().minusDays(1);
+        booking.setEnd(end);
+        bookingRepository.save(booking);
+        int from = 0;
+        int size = 1;
+        int page = from / size;
+        PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "start"));
+
+        List<Booking> bookings = bookingRepository.findByOwnerIdAndStatus(user2.getId(), BookingStatus.WAITING,
+                pageRequest).getContent();
+
+        assertTrue(bookings.isEmpty());
+    }
+
+    @Test
+    @DisplayName("Получение пустого списка бронирований в состоянии REJECTED для владельца вещи, когда нет бронирований " +
+            "с состоянием REJECTED")
+    void findByOwnerIdAndStatus_whenBookingWithoutCorrectEnd_thenReturnedEmptyList() {
+        User user1 = userRepository.save(users.get(0));
+        User user2 = userRepository.save(users.get(0));
+        Item item = itemRepository.save(items.get(0));
+        Booking booking = bookingBuilder(user2, item);
+        LocalDateTime start = LocalDateTime.now().minusDays(2);
+        booking.setStart(start);
+        LocalDateTime end = LocalDateTime.now().plusDays(1);
+        booking.setEnd(end);
+        bookingRepository.save(booking);
+        int from = 0;
+        int size = 1;
+        int page = from / size;
+        PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "start"));
+
+        List<Booking> bookings = bookingRepository.findByOwnerIdAndStatus(user1.getId(), BookingStatus.REJECTED,
                 pageRequest).getContent();
 
         assertTrue(bookings.isEmpty());
@@ -221,7 +576,7 @@ class BookingRepositoryTest {
         long bookerId = 1;
         int from = 0;
         int size = 1;
-        int page = from/size;
+        int page = from / size;
         Sort sort = Sort.by(Sort.Direction.DESC, "start");
         PageRequest pageRequest = PageRequest.of(page, size, sort);
         List<Booking> bookings = bookingRepository.findAllByBookerIdWithStateCurrent(bookerId, LocalDateTime.now(),
@@ -243,7 +598,7 @@ class BookingRepositoryTest {
         bookingRepository.save(booking);
         int from = 0;
         int size = 1;
-        int page = from/size;
+        int page = from / size;
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "start"));
 
         List<Booking> bookings = bookingRepository.findAllByBookerIdWithStateCurrent(user.getId(), LocalDateTime.now(),
@@ -269,7 +624,7 @@ class BookingRepositoryTest {
         bookingRepository.save(booking);
         int from = 0;
         int size = 1;
-        int page = from/size;
+        int page = from / size;
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "start"));
 
         List<Booking> bookings = bookingRepository.findAllByBookerIdWithStateCurrent(user2.getId(), LocalDateTime.now(),
@@ -292,7 +647,7 @@ class BookingRepositoryTest {
         bookingRepository.save(booking);
         int from = 0;
         int size = 1;
-        int page = from/size;
+        int page = from / size;
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "start"));
 
         List<Booking> bookings = bookingRepository.findAllByBookerIdWithStateCurrent(user.getId(), LocalDateTime.now(),
@@ -307,7 +662,7 @@ class BookingRepositoryTest {
         long bookerId = 1;
         int from = 0;
         int size = 1;
-        int page = from/size;
+        int page = from / size;
         Sort sort = Sort.by(Sort.Direction.DESC, "start");
         PageRequest pageRequest = PageRequest.of(page, size, sort);
         List<Booking> bookings = bookingRepository.findByBooker_IdAndStartIsAfter(bookerId, LocalDateTime.now(),
@@ -329,7 +684,7 @@ class BookingRepositoryTest {
         bookingRepository.save(booking);
         int from = 0;
         int size = 1;
-        int page = from/size;
+        int page = from / size;
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "start"));
 
         List<Booking> bookings = bookingRepository.findByBooker_IdAndStartIsAfter(user.getId(), LocalDateTime.now(),
@@ -355,7 +710,7 @@ class BookingRepositoryTest {
         bookingRepository.save(booking);
         int from = 0;
         int size = 1;
-        int page = from/size;
+        int page = from / size;
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "start"));
 
         List<Booking> bookings = bookingRepository.findByBooker_IdAndStartIsAfter(user2.getId(), LocalDateTime.now(),
@@ -378,7 +733,7 @@ class BookingRepositoryTest {
         bookingRepository.save(booking);
         int from = 0;
         int size = 1;
-        int page = from/size;
+        int page = from / size;
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "start"));
 
         List<Booking> bookings = bookingRepository.findByBooker_IdAndStartIsAfter(user.getId(), LocalDateTime.now(),
@@ -416,7 +771,7 @@ class BookingRepositoryTest {
                     "description" + i,
                     true
             );
-            item.setOwner(users.get(i-1));
+            item.setOwner(users.get(i - 1));
             items.add(item);
         }
         return items;

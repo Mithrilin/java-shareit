@@ -80,7 +80,7 @@ public class BookingServiceImpl implements BookingService {
         isUserPresent(bookerId);
         Page<Booking> bookingsPage;
         BookingState bookingState = checkStateValue(state);
-        int page = from/size;
+        int page = from / size;
         Sort sort = Sort.by(Sort.Direction.DESC, "start");
         PageRequest pageRequest = PageRequest.of(page, size, sort);
         switch (bookingState) {
@@ -113,7 +113,7 @@ public class BookingServiceImpl implements BookingService {
         isUserPresent(ownerId);
         Page<Booking> bookingsPage;
         BookingState bookingState = checkStateValue(state);
-        int page = from/size;
+        int page = from / size;
         Sort sort = Sort.by(Sort.Direction.DESC, "start");
         PageRequest pageRequest = PageRequest.of(page, size, sort);
         switch (bookingState) {
@@ -124,7 +124,7 @@ public class BookingServiceImpl implements BookingService {
                 bookingsPage = bookingRepository.findByOwnerIdWithStateFuture(ownerId, LocalDateTime.now(), pageRequest);
                 break;
             case CURRENT:
-                bookingsPage = bookingRepository.findAllByOwnerIdWithStateCurrent(ownerId, LocalDateTime.now(), pageRequest);
+                bookingsPage = bookingRepository.findByByOwnerIdWithStateCurrent(ownerId, LocalDateTime.now(), pageRequest);
                 break;
             case WAITING:
                 bookingsPage = bookingRepository.findByOwnerIdAndStatus(ownerId, BookingStatus.WAITING, pageRequest);

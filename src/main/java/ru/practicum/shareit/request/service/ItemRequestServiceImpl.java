@@ -56,7 +56,7 @@ public class ItemRequestServiceImpl implements ItemRequestService {
     @Override
     public List<ItemRequestDto> getAllItemRequests(long userId, int from, int size) {
         isUserPresent(userId);
-        int page = from/size;
+        int page = from / size;
         Sort sort = Sort.by(Sort.Direction.DESC, "created");
         PageRequest pageRequest = PageRequest.of(page, size, sort);
         Page<ItemRequest> itemRequestPage = itemRequestRepository.findByRequestorIdNot(userId, pageRequest);
