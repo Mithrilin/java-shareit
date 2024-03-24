@@ -40,7 +40,7 @@ public class UserServiceImpl implements UserService {
             oldUser.setEmail(newEmail);
         }
         String newName = userDto.getName();
-        if ((newName != null) && newName.isBlank()) {
+        if (newName != null) {
             oldUser.setName(newName);
         }
         User updatedUser = userRepository.save(oldUser);
