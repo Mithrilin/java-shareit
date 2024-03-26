@@ -1,6 +1,7 @@
 package ru.practicum.shareit.booking.controller;
 
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import ru.practicum.shareit.booking.dto.BookingDto;
 import ru.practicum.shareit.booking.service.BookingService;
+import ru.practicum.shareit.params.PageRequestParams;
 
 import javax.validation.constraints.Min;
 import javax.validation.constraints.Positive;
@@ -49,7 +51,9 @@ public class BookingController {
                                                     @RequestParam(defaultValue = "ALL") String state,
                                                     @RequestParam(defaultValue = "0") @Min(0) int from,
                                                     @RequestParam(defaultValue = "10") @Min(1) int size) {
-        return bookingService.getAllBookingByBookerId(bookerId, state, from, size);
+        final String sortBy = "start";
+        final PageRequestParams pageRequestParams = new PageRequestParams(from, size, Sort.Direction.DESC, sortBy);
+        return bookingService.getAllBookingByBookerId(bookerId, state, pageRequestParams);
     }
 
     @GetMapping("/owner")
@@ -57,6 +61,8 @@ public class BookingController {
                                                    @RequestParam(defaultValue = "ALL") String state,
                                                    @RequestParam(defaultValue = "0") @Min(0) int from,
                                                    @RequestParam(defaultValue = "10") @Min(1) int size) {
-        return bookingService.getAllBookingByOwnerId(ownerId, state, from, size);
+        final String sortBy = "start";
+        final PageRequestParams pageRequestParams = new PageRequestParams(from, size, Sort.Direction.DESC, sortBy);
+        return bookingService.getAllBookingByOwnerId(ownerId, state, pageRequestParams);
     }
 }

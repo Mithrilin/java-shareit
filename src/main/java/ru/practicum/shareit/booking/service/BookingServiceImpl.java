@@ -4,7 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.booking.BookingState;
 import ru.practicum.shareit.booking.BookingStatus;
@@ -18,6 +17,7 @@ import ru.practicum.shareit.exception.NotOwnerOrBookerException;
 import ru.practicum.shareit.exception.NotValidException;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.repository.ItemRepository;
+import ru.practicum.shareit.params.PageRequestParams;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
 
@@ -76,13 +76,11 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public List<BookingDto> getAllBookingByBookerId(long bookerId, String state, int from, int size) {
+    public List<BookingDto> getAllBookingByBookerId(long bookerId, String state, PageRequestParams pageRequestParams) {
         isUserPresent(bookerId);
         Page<Booking> bookingsPage;
         BookingState bookingState = checkStateValue(state);
-        int page = from / size;
-        Sort sort = Sort.by(Sort.Direction.DESC, "start");
-        PageRequest pageRequest = PageRequest.of(page, size, sort);
+        PageRequest pageRequest = pageRequestParams.getPageRequest();
         switch (bookingState) {
             case PAST:
                 bookingsPage = bookingRepository.findByBooker_IdAndEndIsBefore(bookerId, LocalDateTime.now(), pageRequest);
@@ -104,18 +102,16 @@ public class BookingServiceImpl implements BookingService {
         }
         List<BookingDto> bookingDtos = BookingMapper.toBookingDtos(bookingsPage.getContent());
         log.info("Список бронирований в состоянии {} пользователя с ид {} с номера {} размером {} возвращён.",
-                state, bookerId, from, size);
+                state, bookerId, pageRequestParams.getFrom(), pageRequestParams.getSize());
         return bookingDtos;
     }
 
     @Override
-    public List<BookingDto> getAllBookingByOwnerId(long ownerId, String state, int from, int size) {
+    public List<BookingDto> getAllBookingByOwnerId(long ownerId, String state, PageRequestParams pageRequestParams) {
         isUserPresent(ownerId);
         Page<Booking> bookingsPage;
         BookingState bookingState = checkStateValue(state);
-        int page = from / size;
-        Sort sort = Sort.by(Sort.Direction.DESC, "start");
-        PageRequest pageRequest = PageRequest.of(page, size, sort);
+        PageRequest pageRequest = pageRequestParams.getPageRequest();
         switch (bookingState) {
             case PAST:
                 bookingsPage = bookingRepository.findByOwnerIdWithStatePast(ownerId, LocalDateTime.now(), pageRequest);
@@ -137,7 +133,7 @@ public class BookingServiceImpl implements BookingService {
         }
         List<BookingDto> bookingDtos = BookingMapper.toBookingDtos(bookingsPage.getContent());
         log.info("Список бронирований в состоянии {} владельца вещей с ид {} с номера {} размером {} возвращён.",
-                state, ownerId, from, size);
+                state, ownerId, pageRequestParams.getFrom(), pageRequestParams.getSize());
         return bookingDtos;
     }
 

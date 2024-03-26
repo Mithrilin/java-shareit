@@ -10,13 +10,13 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.mapper.ItemMapper;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.repository.ItemRepository;
+import ru.practicum.shareit.params.PageRequestParams;
 import ru.practicum.shareit.request.dto.ItemRequestDto;
 import ru.practicum.shareit.request.mapper.ItemRequestMapper;
 import ru.practicum.shareit.request.model.ItemRequest;
@@ -146,10 +146,9 @@ class ItemRequestServiceImplTest {
         Page<ItemRequest> itemRequestPage = new PageImpl<>(List.of(itemRequest1, itemRequest2));
         int from = 0;
         int size = 20;
-        int page = from / size;
-        Sort sort = Sort.by(Sort.Direction.DESC, "created");
-        PageRequest pageRequest = PageRequest.of(page, size, sort);
-        when(itemRequestRepository.findByRequestorIdNot(userId, pageRequest)).thenReturn(itemRequestPage);
+        final String sortBy = "created";
+        final PageRequestParams pageRequestParams = new PageRequestParams(from, size, Sort.Direction.DESC, sortBy);
+        when(itemRequestRepository.findByRequestorIdNot(userId, pageRequestParams.getPageRequest())).thenReturn(itemRequestPage);
         Item item1 = items.get(0);
         Item item2 = items.get(1);
         Item item3 = items.get(2);
@@ -159,7 +158,7 @@ class ItemRequestServiceImplTest {
         List<Item> returnedItems = List.of(item1, item2, item3);
         when(itemRepository.findByRequestIdIn(any())).thenReturn(returnedItems);
 
-        List<ItemRequestDto> itemRequestDtos = itemRequestService.getAllItemRequests(userId, from, size);
+        List<ItemRequestDto> itemRequestDtos = itemRequestService.getAllItemRequests(userId, pageRequestParams);
 
         assertEquals(2, itemRequestDtos.size());
         assertEquals(itemRequest1.getDescription(), itemRequestDtos.get(0).getDescription());
@@ -176,12 +175,11 @@ class ItemRequestServiceImplTest {
         Page<ItemRequest> itemRequestPage = Page.empty();
         int from = 0;
         int size = 20;
-        int page = from / size;
-        Sort sort = Sort.by(Sort.Direction.DESC, "created");
-        PageRequest pageRequest = PageRequest.of(page, size, sort);
-        when(itemRequestRepository.findByRequestorIdNot(userId, pageRequest)).thenReturn(itemRequestPage);
+        final String sortBy = "created";
+        final PageRequestParams pageRequestParams = new PageRequestParams(from, size, Sort.Direction.DESC, sortBy);
+        when(itemRequestRepository.findByRequestorIdNot(userId, pageRequestParams.getPageRequest())).thenReturn(itemRequestPage);
 
-        List<ItemRequestDto> itemRequestDtos = itemRequestService.getAllItemRequests(userId, from, size);
+        List<ItemRequestDto> itemRequestDtos = itemRequestService.getAllItemRequests(userId, pageRequestParams);
 
         assertEquals(0, itemRequestDtos.size());
     }
@@ -191,18 +189,17 @@ class ItemRequestServiceImplTest {
     void getAllItemRequests_whenUserNotPresent_thenThrowNotFoundException() {
         int from = 0;
         int size = 20;
-        int page = from / size;
-        Sort sort = Sort.by(Sort.Direction.DESC, "created");
-        PageRequest pageRequest = PageRequest.of(page, size, sort);
+        final String sortBy = "created";
+        final PageRequestParams pageRequestParams = new PageRequestParams(from, size, Sort.Direction.DESC, sortBy);
         long userId = 1;
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
         NotFoundException exception = assertThrows(
                 NotFoundException.class,
-                () -> itemRequestService.getAllItemRequests(userId, from, size));
+                () -> itemRequestService.getAllItemRequests(userId, pageRequestParams));
 
         assertEquals("Пользователь с ИД 1 отсутствует в БД.", exception.getMessage());
-        verify(itemRequestRepository, never()).findByRequestorIdNot(userId, pageRequest);
+        verify(itemRequestRepository, never()).findByRequestorIdNot(userId, pageRequestParams.getPageRequest());
     }
 
     @Test

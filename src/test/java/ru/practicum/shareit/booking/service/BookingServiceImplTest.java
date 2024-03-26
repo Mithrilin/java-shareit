@@ -10,6 +10,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import ru.practicum.shareit.booking.BookingStatus;
 import ru.practicum.shareit.booking.dto.BookingDto;
 import ru.practicum.shareit.booking.mapper.BookingMapper;
@@ -22,6 +23,7 @@ import ru.practicum.shareit.exception.NotValidException;
 import ru.practicum.shareit.item.mapper.ItemMapper;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.repository.ItemRepository;
+import ru.practicum.shareit.params.PageRequestParams;
 import ru.practicum.shareit.user.mapper.UserMapper;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
@@ -394,7 +396,8 @@ class BookingServiceImplTest {
         when(bookingRepository.findByBooker_IdAndEndIsBefore(anyLong(), any(LocalDateTime.class), any(PageRequest.class)))
                 .thenReturn(bookingsPage);
 
-        List<BookingDto> bookingDtos = bookingService.getAllBookingByBookerId(userId, "PAST", 0, 20);
+        List<BookingDto> bookingDtos = bookingService.getAllBookingByBookerId(userId, "PAST",
+                new PageRequestParams(0, 20, Sort.Direction.DESC, "start"));
 
         assertEquals(2, bookingDtos.size());
         assertEquals(BookingMapper.toBookingDto(booking1), bookingDtos.get(0));
@@ -420,7 +423,8 @@ class BookingServiceImplTest {
         when(bookingRepository.findByBooker_IdAndStartIsAfter(anyLong(), any(LocalDateTime.class), any(PageRequest.class)))
                 .thenReturn(bookingsPage);
 
-        List<BookingDto> bookingDtos = bookingService.getAllBookingByBookerId(userId, "FUTURE", 0, 20);
+        List<BookingDto> bookingDtos = bookingService.getAllBookingByBookerId(userId, "FUTURE",
+                new PageRequestParams(0, 20, Sort.Direction.DESC, "start"));
 
         assertEquals(2, bookingDtos.size());
         assertEquals(BookingMapper.toBookingDto(booking1), bookingDtos.get(0));
@@ -446,7 +450,8 @@ class BookingServiceImplTest {
         when(bookingRepository.findAllByBookerIdWithStateCurrent(anyLong(), any(LocalDateTime.class), any(PageRequest.class)))
                 .thenReturn(bookingsPage);
 
-        List<BookingDto> bookingDtos = bookingService.getAllBookingByBookerId(userId, "CURRENT", 0, 20);
+        List<BookingDto> bookingDtos = bookingService.getAllBookingByBookerId(userId, "CURRENT",
+                new PageRequestParams(0, 20, Sort.Direction.DESC, "start"));
 
         assertEquals(2, bookingDtos.size());
         assertEquals(BookingMapper.toBookingDto(booking1), bookingDtos.get(0));
@@ -472,7 +477,8 @@ class BookingServiceImplTest {
         when(bookingRepository.findByBooker_IdAndStatusEquals(anyLong(), any(BookingStatus.class), any(PageRequest.class)))
                 .thenReturn(bookingsPage);
 
-        List<BookingDto> bookingDtos = bookingService.getAllBookingByBookerId(userId, "WAITING", 0, 20);
+        List<BookingDto> bookingDtos = bookingService.getAllBookingByBookerId(userId, "WAITING",
+                new PageRequestParams(0, 20, Sort.Direction.DESC, "start"));
 
         assertEquals(2, bookingDtos.size());
         assertEquals(BookingMapper.toBookingDto(booking1), bookingDtos.get(0));
@@ -498,7 +504,8 @@ class BookingServiceImplTest {
         when(bookingRepository.findByBooker_IdAndStatusEquals(anyLong(), any(BookingStatus.class), any(PageRequest.class)))
                 .thenReturn(bookingsPage);
 
-        List<BookingDto> bookingDtos = bookingService.getAllBookingByBookerId(userId, "REJECTED", 0, 20);
+        List<BookingDto> bookingDtos = bookingService.getAllBookingByBookerId(userId, "REJECTED",
+                new PageRequestParams(0, 20, Sort.Direction.DESC, "start"));
 
         assertEquals(2, bookingDtos.size());
         assertEquals(BookingMapper.toBookingDto(booking1), bookingDtos.get(0));
@@ -524,7 +531,8 @@ class BookingServiceImplTest {
         when(bookingRepository.findByBooker_Id(anyLong(), any(PageRequest.class)))
                 .thenReturn(bookingsPage);
 
-        List<BookingDto> bookingDtos = bookingService.getAllBookingByBookerId(userId, "ALL", 0, 20);
+        List<BookingDto> bookingDtos = bookingService.getAllBookingByBookerId(userId, "ALL",
+                new PageRequestParams(0, 20, Sort.Direction.DESC, "start"));
 
         assertEquals(2, bookingDtos.size());
         assertEquals(BookingMapper.toBookingDto(booking1), bookingDtos.get(0));
@@ -541,7 +549,8 @@ class BookingServiceImplTest {
 
         NotValidException exception = assertThrows(
                 NotValidException.class,
-                () -> bookingService.getAllBookingByBookerId(userId, "dfghj", 0, 20));
+                () -> bookingService.getAllBookingByBookerId(userId, "dfghj",
+                        new PageRequestParams(0, 20, Sort.Direction.DESC, "start")));
 
         assertEquals("Unknown state: dfghj", exception.getMessage());
         verify(bookingRepository, never()).findByBooker_IdAndEndIsBefore(anyLong(), any(LocalDateTime.class), any(PageRequest.class));
@@ -573,7 +582,8 @@ class BookingServiceImplTest {
         when(bookingRepository.findByOwnerIdWithStatePast(anyLong(), any(LocalDateTime.class), any(PageRequest.class)))
                 .thenReturn(bookingsPage);
 
-        List<BookingDto> bookingDtos = bookingService.getAllBookingByOwnerId(ownerId, "PAST", 0, 20);
+        List<BookingDto> bookingDtos = bookingService.getAllBookingByOwnerId(ownerId, "PAST",
+                new PageRequestParams(0, 20, Sort.Direction.DESC, "start"));
 
         assertEquals(2, bookingDtos.size());
         assertEquals(BookingMapper.toBookingDto(booking1), bookingDtos.get(0));
@@ -602,7 +612,8 @@ class BookingServiceImplTest {
         when(bookingRepository.findByOwnerIdWithStateFuture(anyLong(), any(LocalDateTime.class), any(PageRequest.class)))
                 .thenReturn(bookingsPage);
 
-        List<BookingDto> bookingDtos = bookingService.getAllBookingByOwnerId(ownerId, "FUTURE", 0, 20);
+        List<BookingDto> bookingDtos = bookingService.getAllBookingByOwnerId(ownerId, "FUTURE",
+                new PageRequestParams(0, 20, Sort.Direction.DESC, "start"));
 
         assertEquals(2, bookingDtos.size());
         assertEquals(BookingMapper.toBookingDto(booking1), bookingDtos.get(0));
@@ -631,7 +642,8 @@ class BookingServiceImplTest {
         when(bookingRepository.findByByOwnerIdWithStateCurrent(anyLong(), any(LocalDateTime.class), any(PageRequest.class)))
                 .thenReturn(bookingsPage);
 
-        List<BookingDto> bookingDtos = bookingService.getAllBookingByOwnerId(ownerId, "CURRENT", 0, 20);
+        List<BookingDto> bookingDtos = bookingService.getAllBookingByOwnerId(ownerId, "CURRENT",
+                new PageRequestParams(0, 20, Sort.Direction.DESC, "start"));
 
         assertEquals(2, bookingDtos.size());
         assertEquals(BookingMapper.toBookingDto(booking1), bookingDtos.get(0));
@@ -660,7 +672,8 @@ class BookingServiceImplTest {
         when(bookingRepository.findByOwnerIdAndStatus(anyLong(), any(BookingStatus.class), any(PageRequest.class)))
                 .thenReturn(bookingsPage);
 
-        List<BookingDto> bookingDtos = bookingService.getAllBookingByOwnerId(ownerId, "WAITING", 0, 20);
+        List<BookingDto> bookingDtos = bookingService.getAllBookingByOwnerId(ownerId, "WAITING",
+                new PageRequestParams(0, 20, Sort.Direction.DESC, "start"));
 
         assertEquals(2, bookingDtos.size());
         assertEquals(BookingMapper.toBookingDto(booking1), bookingDtos.get(0));
@@ -689,7 +702,8 @@ class BookingServiceImplTest {
         when(bookingRepository.findByOwnerIdAndStatus(anyLong(), any(BookingStatus.class), any(PageRequest.class)))
                 .thenReturn(bookingsPage);
 
-        List<BookingDto> bookingDtos = bookingService.getAllBookingByOwnerId(ownerId, "REJECTED", 0, 20);
+        List<BookingDto> bookingDtos = bookingService.getAllBookingByOwnerId(ownerId, "REJECTED",
+                new PageRequestParams(0, 20, Sort.Direction.DESC, "start"));
 
         assertEquals(2, bookingDtos.size());
         assertEquals(BookingMapper.toBookingDto(booking1), bookingDtos.get(0));
@@ -718,7 +732,8 @@ class BookingServiceImplTest {
         when(bookingRepository.findByItemOwnerId(anyLong(), any(PageRequest.class)))
                 .thenReturn(bookingsPage);
 
-        List<BookingDto> bookingDtos = bookingService.getAllBookingByOwnerId(ownerId, "ALL", 0, 20);
+        List<BookingDto> bookingDtos = bookingService.getAllBookingByOwnerId(ownerId, "ALL",
+                new PageRequestParams(0, 20, Sort.Direction.DESC, "start"));
 
         assertEquals(2, bookingDtos.size());
         assertEquals(BookingMapper.toBookingDto(booking1), bookingDtos.get(0));

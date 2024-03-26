@@ -11,6 +11,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import ru.practicum.shareit.booking.dto.BookingDto;
 import ru.practicum.shareit.booking.service.BookingService;
+import ru.practicum.shareit.params.PageRequestParams;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
@@ -79,7 +80,7 @@ class BookingControllerTest {
         BookingDto bookingDto2 = new BookingDto(2L, 2L, LocalDateTime.now().plusDays(2), LocalDateTime.now().plusDays(3),
                 null, null, WAITING);
         List<BookingDto> bookingDtos = List.of(bookingDto1, bookingDto2);
-        when(bookingService.getAllBookingByBookerId(Mockito.anyLong(), Mockito.anyString(), Mockito.anyInt(), Mockito.anyInt()))
+        when(bookingService.getAllBookingByBookerId(Mockito.anyLong(), Mockito.anyString(), Mockito.any(PageRequestParams.class)))
                 .thenReturn(bookingDtos);
 
         mvc.perform(get("/bookings")
@@ -106,7 +107,7 @@ class BookingControllerTest {
         BookingDto bookingDto2 = new BookingDto(2L, 2L, LocalDateTime.now().plusDays(2), LocalDateTime.now().plusDays(3),
                 null, null, WAITING);
         List<BookingDto> bookingDtos = List.of(bookingDto1, bookingDto2);
-        when(bookingService.getAllBookingByOwnerId(Mockito.anyLong(), Mockito.anyString(), Mockito.anyInt(), Mockito.anyInt()))
+        when(bookingService.getAllBookingByOwnerId(Mockito.anyLong(), Mockito.anyString(), Mockito.any(PageRequestParams.class)))
                 .thenReturn(bookingDtos);
 
         mvc.perform(get("/bookings/owner")

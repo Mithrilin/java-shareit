@@ -4,13 +4,13 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.mapper.ItemMapper;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.repository.ItemRepository;
+import ru.practicum.shareit.params.PageRequestParams;
 import ru.practicum.shareit.request.dto.ItemRequestDto;
 import ru.practicum.shareit.request.mapper.ItemRequestMapper;
 import ru.practicum.shareit.request.model.ItemRequest;
@@ -54,15 +54,13 @@ public class ItemRequestServiceImpl implements ItemRequestService {
     }
 
     @Override
-    public List<ItemRequestDto> getAllItemRequests(long userId, int from, int size) {
+    public List<ItemRequestDto> getAllItemRequests(long userId, PageRequestParams pageRequestParams) {
         isUserPresent(userId);
-        int page = from / size;
-        Sort sort = Sort.by(Sort.Direction.DESC, "created");
-        PageRequest pageRequest = PageRequest.of(page, size, sort);
+        PageRequest pageRequest = pageRequestParams.getPageRequest();
         Page<ItemRequest> itemRequestPage = itemRequestRepository.findByRequestorIdNot(userId, pageRequest);
         List<ItemRequest> itemRequests = itemRequestPage.getContent();
         List<ItemRequestDto> itemRequestDtos = addItemDtos(itemRequests);
-        log.info("Список запросов с номера {} размером {} возвращён.", from, size);
+        log.info("Список запросов с номера {} размером {} возвращён.", pageRequestParams.getFrom(), pageRequestParams.getSize());
         return itemRequestDtos;
     }
 

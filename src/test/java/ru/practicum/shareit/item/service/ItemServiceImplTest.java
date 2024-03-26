@@ -24,6 +24,7 @@ import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.repository.CommentRepository;
 import ru.practicum.shareit.item.repository.ItemRepository;
+import ru.practicum.shareit.params.PageRequestParams;
 import ru.practicum.shareit.request.model.ItemRequest;
 import ru.practicum.shareit.request.repository.ItemRequestRepository;
 import ru.practicum.shareit.user.model.User;
@@ -320,7 +321,8 @@ class ItemServiceImplTest {
         when(bookingRepository.findByItemIdIn(List.of(itemId1, itemId2))).thenReturn(bookings);
         when(commentRepository.findByItemIdIn(List.of(itemId1, itemId2))).thenReturn(new ArrayList<>());
 
-        List<ItemGetResponseDto> itemGetResponseDtoList = itemService.getAllItemsByUserId(user1Id, 0, 20);
+        List<ItemGetResponseDto> itemGetResponseDtoList = itemService.getAllItemsByUserId(user1Id,
+                new PageRequestParams(0, 20, Sort.Direction.ASC, "id"));
 
         assertEquals(2, itemGetResponseDtoList.size());
         assertEquals(item1.getName(), itemGetResponseDtoList.get(0).getName());
@@ -351,7 +353,8 @@ class ItemServiceImplTest {
         when(itemRepository.findByOwnerId(user1Id, pageRequest)).thenReturn(itemsPage);
         when(bookingRepository.findByItemIdIn(List.of(itemId1, itemId2))).thenReturn(new ArrayList<>());
 
-        List<ItemGetResponseDto> itemGetResponseDtoList = itemService.getAllItemsByUserId(user1Id, 0, 20);
+        List<ItemGetResponseDto> itemGetResponseDtoList = itemService.getAllItemsByUserId(user1Id,
+                new PageRequestParams(0, 20, Sort.Direction.ASC, "id"));
 
         verify(commentRepository, never()).findByItemIdIn(any());
         assertEquals(2, itemGetResponseDtoList.size());
@@ -374,7 +377,8 @@ class ItemServiceImplTest {
         Page<Item> itemsPage = new PageImpl<>(List.of(item1, item2));
         when(itemRepository.findAllBySearch("text", pageRequest)).thenReturn(itemsPage);
 
-        List<ItemDto> returnedItemDtos = itemService.getItemsBySearch("text", 0, 20);
+        List<ItemDto> returnedItemDtos = itemService.getItemsBySearch("text",
+                new PageRequestParams(0, 20, Sort.Direction.ASC, "id"));
 
         assertEquals(2, returnedItemDtos.size());
         assertEquals(item1.getName(), returnedItemDtos.get(0).getName());

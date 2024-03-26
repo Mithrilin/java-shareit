@@ -9,6 +9,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import ru.practicum.shareit.params.PageRequestParams;
 import ru.practicum.shareit.request.dto.ItemRequestDto;
 import ru.practicum.shareit.request.service.ItemRequestService;
 
@@ -73,7 +74,8 @@ class ItemRequestControllerTest {
     void getAllItemRequests_when2ItemRequestDto_thenReturnedItemRequestDtoList() throws Exception {
         List<ItemRequestDto> itemRequestDtos = List.of(new ItemRequestDto("описание", null),
                 new ItemRequestDto("описание2", null));
-        when(itemRequestService.getAllItemRequests(Mockito.anyLong(), Mockito.anyInt(), Mockito.anyInt())).thenReturn(itemRequestDtos);
+        when(itemRequestService.getAllItemRequests(Mockito.anyLong(), Mockito.any(PageRequestParams.class)))
+                .thenReturn(itemRequestDtos);
 
         mvc.perform(get("/requests/all")
                         .param("from", "0")

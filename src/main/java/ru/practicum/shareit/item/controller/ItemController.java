@@ -1,6 +1,7 @@
 package ru.practicum.shareit.item.controller;
 
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -15,6 +16,7 @@ import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.ItemGetResponseDto;
 import ru.practicum.shareit.item.service.ItemService;
+import ru.practicum.shareit.params.PageRequestParams;
 
 import javax.validation.Valid;
 import javax.validation.constraints.Min;
@@ -53,7 +55,9 @@ public class ItemController {
     public List<ItemGetResponseDto> getAllItemsByUserId(@RequestHeader("X-Sharer-User-Id") long userId,
                                                         @RequestParam(defaultValue = "0") @Min(0) int from,
                                                         @RequestParam(defaultValue = "10") @Min(1) int size) {
-        return itemService.getAllItemsByUserId(userId, from, size);
+        final String sortBy = "id";
+        final PageRequestParams pageRequestParams = new PageRequestParams(from, size, Sort.Direction.ASC, sortBy);
+        return itemService.getAllItemsByUserId(userId, pageRequestParams);
     }
 
     @GetMapping("/search")
@@ -63,7 +67,9 @@ public class ItemController {
         if (text == null || text.isBlank()) {
             return Collections.emptyList();
         }
-        return itemService.getItemsBySearch(text, from, size);
+        final String sortBy = "id";
+        final PageRequestParams pageRequestParams = new PageRequestParams(from, size, Sort.Direction.ASC, sortBy);
+        return itemService.getItemsBySearch(text, pageRequestParams);
     }
 
     @PostMapping("/{itemId}/comment")

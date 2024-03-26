@@ -4,7 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.booking.BookingStatus;
 import ru.practicum.shareit.booking.dto.BookingResponseDto;
@@ -23,6 +22,7 @@ import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.mapper.ItemMapper;
 import ru.practicum.shareit.item.repository.CommentRepository;
 import ru.practicum.shareit.item.repository.ItemRepository;
+import ru.practicum.shareit.params.PageRequestParams;
 import ru.practicum.shareit.request.model.ItemRequest;
 import ru.practicum.shareit.request.repository.ItemRequestRepository;
 import ru.practicum.shareit.user.model.User;
@@ -98,24 +98,22 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    public List<ItemGetResponseDto> getAllItemsByUserId(long userId, int from, int size) {
+    public List<ItemGetResponseDto> getAllItemsByUserId(long userId, PageRequestParams pageRequestParams) {
         isUserPresent(userId);
-        List<ItemGetResponseDto> itemGetResponseDtoList = addBookingAndCommentResponseDto(userId, from, size);
+        List<ItemGetResponseDto> itemGetResponseDtoList = addBookingAndCommentResponseDto(userId, pageRequestParams);
         log.info("Список вещей пользователя с ид {} с номера {} размером {} возвращён.",
-                userId, from, size);
+                userId, pageRequestParams.getFrom(), pageRequestParams.getSize());
         return itemGetResponseDtoList;
     }
 
     @Override
-    public List<ItemDto> getItemsBySearch(String text, int from, int size) {
-        int page = from / size;
-        Sort sort = Sort.by(Sort.Direction.ASC, "id");
-        PageRequest pageRequest = PageRequest.of(page, size, sort);
+    public List<ItemDto> getItemsBySearch(String text, PageRequestParams pageRequestParams) {
+        PageRequest pageRequest = pageRequestParams.getPageRequest();
         Page<Item> itemsPage = itemRepository.findAllBySearch(text, pageRequest);
         List<Item> items = itemsPage.getContent();
         List<ItemDto> itemsDto = ItemMapper.toItemDtos(items);
         log.info("Список свободных вещей по запросу \"{}\" с номера {} размером {} возвращён.",
-                text, from, size);
+                text, pageRequestParams.getFrom(), pageRequestParams.getSize());
         return itemsDto;
     }
 
@@ -139,10 +137,8 @@ public class ItemServiceImpl implements ItemService {
         return CommentMapper.toCommentDto(savedComment);
     }
 
-    private List<ItemGetResponseDto> addBookingAndCommentResponseDto(long userId, int from, int size) {
-        int page = from / size;
-        Sort sort = Sort.by(Sort.Direction.ASC, "id");
-        PageRequest pageRequest = PageRequest.of(page, size, sort);
+    private List<ItemGetResponseDto> addBookingAndCommentResponseDto(long userId, PageRequestParams pageRequestParams) {
+        PageRequest pageRequest = pageRequestParams.getPageRequest();
         Page<Item> itemsPage = itemRepository.findByOwnerId(userId, pageRequest);
         List<Item> items = itemsPage.getContent();
         List<Long> itemIds = items.stream()

@@ -3,6 +3,7 @@ package ru.practicum.shareit.item.service;
 import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.ItemGetResponseDto;
+import ru.practicum.shareit.params.PageRequestParams;
 
 import java.util.List;
 
@@ -14,9 +15,9 @@ public interface ItemService {
 
     ItemGetResponseDto getItemById(long userId, long id);
 
-    List<ItemGetResponseDto> getAllItemsByUserId(long userId, int from, int size);
+    List<ItemGetResponseDto> getAllItemsByUserId(long userId, PageRequestParams pageRequestParams);
 
-    List<ItemDto> getItemsBySearch(String text, int from, int size);
+    List<ItemDto> getItemsBySearch(String text, PageRequestParams pageRequestParams);
 
     CommentDto addComment(long userId, long itemId, CommentDto commentDto);
 }

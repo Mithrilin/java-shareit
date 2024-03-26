@@ -13,6 +13,7 @@ import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.ItemGetResponseDto;
 import ru.practicum.shareit.item.service.ItemService;
+import ru.practicum.shareit.params.PageRequestParams;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -98,7 +99,8 @@ class ItemControllerTest {
         List<ItemGetResponseDto> itemGetResponseDtos = List.of(
                 new ItemGetResponseDto(1L, "name1", "description1", true),
                 new ItemGetResponseDto(2L, "name2", "description2", true));
-        when(itemService.getAllItemsByUserId(Mockito.anyLong(), Mockito.anyInt(), Mockito.anyInt())).thenReturn(itemGetResponseDtos);
+        when(itemService.getAllItemsByUserId(Mockito.anyLong(), Mockito.any(PageRequestParams.class)))
+                .thenReturn(itemGetResponseDtos);
 
         mvc.perform(get("/items")
                         .param("from", "0")
@@ -124,7 +126,8 @@ class ItemControllerTest {
                 new ItemDto("name1", "description1", true, null),
                 new ItemDto("name2", "description2", true, null)
         );
-        when(itemService.getItemsBySearch(Mockito.anyString(), Mockito.anyInt(), Mockito.anyInt())).thenReturn(itemDtos);
+        when(itemService.getItemsBySearch(Mockito.anyString(), Mockito.any(PageRequestParams.class)))
+                .thenReturn(itemDtos);
 
         mvc.perform(get("/items/search")
                         .param("text", "name")
@@ -157,14 +160,15 @@ class ItemControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(0)));
 
-        verify(itemService, never()).getItemsBySearch(Mockito.anyString(), Mockito.anyInt(), Mockito.anyInt());
+        verify(itemService, never()).getItemsBySearch(Mockito.anyString(), Mockito.any(PageRequestParams.class));
     }
 
     @Test
     @DisplayName("Успешное добавление отзыва к вещи")
     void createComment_whenCommentDtoIsValid_thenReturnedCommentDto() throws Exception {
         CommentDto commentDto = new CommentDto(1L, "text", "name", null);
-        when(itemService.addComment(Mockito.anyLong(), Mockito.anyLong(), Mockito.any(CommentDto.class))).thenReturn(commentDto);
+        when(itemService.addComment(Mockito.anyLong(), Mockito.anyLong(), Mockito.any(CommentDto.class)))
+                .thenReturn(commentDto);
 
         mvc.perform(post("/items/{itemId}/comment", 1)
                         .content(mapper.writeValueAsString(commentDto))
