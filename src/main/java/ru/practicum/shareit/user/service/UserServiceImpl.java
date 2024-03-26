@@ -13,7 +13,6 @@ import ru.practicum.shareit.user.repository.UserRepository;
 import javax.transaction.Transactional;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -26,18 +25,16 @@ public class UserServiceImpl implements UserService {
     public UserDto addUser(UserDto userDto) {
         isUserHaveEmail(userDto);
         User user = UserMapper.toUser(userDto);
-        user = userRepository.save(user);
-        userDto.setId(user.getId());
-        log.info("Добавлен новый пользователь с ID = {}", user.getId());
-        return userDto;
+        User returnedUser = userRepository.save(user);
+        UserDto returnedUserDto = UserMapper.toUserDto(returnedUser);
+        log.info("Добавлен новый пользователь с ID = {}", returnedUserDto.getId());
+        return returnedUserDto;
     }
 
     @Override
     @Transactional
     public UserDto updateUser(UserDto userDto) {
-        Optional<User> optionalUser = userRepository.findById(userDto.getId());
-        isUserPresent(optionalUser, userDto.getId());
-        User oldUser = optionalUser.orElseThrow();
+        User oldUser = isUserPresent(userDto.getId());
         String newEmail = userDto.getEmail();
         if (newEmail != null) {
             oldUser.setEmail(newEmail);
@@ -53,9 +50,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDto getUserById(long id) {
-        Optional<User> optionalUser = userRepository.findById(id);
-        isUserPresent(optionalUser, id);
-        UserDto userDto = UserMapper.toUserDto(optionalUser.orElseThrow());
+        User user = isUserPresent(id);
+        UserDto userDto = UserMapper.toUserDto(user);
         log.info("Пользователь с ID {} возвращён.", id);
         return userDto;
     }
@@ -70,14 +66,16 @@ public class UserServiceImpl implements UserService {
     public List<UserDto> getAllUsers() {
         List<User> users = userRepository.findAll();
         log.info("Текущее количество пользователей: {}. Список возвращён.", users.size());
-        return users.stream().map(UserMapper::toUserDto).collect(Collectors.toList());
+        return UserMapper.toUserDtos(users);
     }
 
-    private void isUserPresent(Optional<User> optionalUser, long userId) {
+    private User isUserPresent(long userId) {
+        Optional<User> optionalUser = userRepository.findById(userId);
         if (optionalUser.isEmpty()) {
             log.error("Пользователь с ИД {} отсутствует в БД.", userId);
             throw new NotFoundException(String.format("Пользователь с ИД %d отсутствует в БД.", userId));
         }
+        return optionalUser.get();
     }
 
     private void isUserHaveEmail(UserDto userDto) {

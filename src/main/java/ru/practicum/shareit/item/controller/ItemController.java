@@ -1,6 +1,7 @@
 package ru.practicum.shareit.item.controller;
 
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -15,7 +16,10 @@ import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.ItemGetResponseDto;
 import ru.practicum.shareit.item.service.ItemService;
+import ru.practicum.shareit.params.PageRequestParams;
 
+import javax.validation.Valid;
+import javax.validation.constraints.Min;
 import javax.validation.constraints.Positive;
 import java.util.Collections;
 import java.util.List;
@@ -48,22 +52,30 @@ public class ItemController {
     }
 
     @GetMapping
-    public List<ItemGetResponseDto> getAllItemsByUserId(@RequestHeader("X-Sharer-User-Id") long userId) {
-        return itemService.getAllItemsByUserId(userId);
+    public List<ItemGetResponseDto> getAllItemsByUserId(@RequestHeader("X-Sharer-User-Id") long userId,
+                                                        @RequestParam(defaultValue = "0") @Min(0) int from,
+                                                        @RequestParam(defaultValue = "10") @Min(1) int size) {
+        final String sortBy = "id";
+        final PageRequestParams pageRequestParams = new PageRequestParams(from, size, Sort.Direction.ASC, sortBy);
+        return itemService.getAllItemsByUserId(userId, pageRequestParams);
     }
 
     @GetMapping("/search")
-    public List<ItemDto> getItemsBySearch(@RequestParam String text) {
+    public List<ItemDto> getItemsBySearch(@RequestParam String text,
+                                          @RequestParam(defaultValue = "0") @Min(0) int from,
+                                          @RequestParam(defaultValue = "10") @Min(1) int size) {
         if (text == null || text.isBlank()) {
             return Collections.emptyList();
         }
-        return itemService.getItemsBySearch(text);
+        final String sortBy = "id";
+        final PageRequestParams pageRequestParams = new PageRequestParams(from, size, Sort.Direction.ASC, sortBy);
+        return itemService.getItemsBySearch(text, pageRequestParams);
     }
 
     @PostMapping("/{itemId}/comment")
     public CommentDto createComment(@RequestHeader("X-Sharer-User-Id") long userId,
                                     @PathVariable @Positive long itemId,
-                                    @RequestBody CommentDto commentDto) {
+                                    @RequestBody @Valid CommentDto commentDto) {
         return itemService.addComment(userId, itemId, commentDto);
     }
 }
