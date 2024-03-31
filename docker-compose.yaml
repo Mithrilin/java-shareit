@@ -6,17 +6,17 @@ services:
     container_name: shareIt-gateway-container
     ports:
       - "8080:8080"
-    depends_on:
-      - shareIt-server
+#    depends_on:
+#      - shareIt-server
     environment:
-      - SHAREIT-SERVER_URL=http://shareIt-server:8080
+      - SHAREIT-SERVER_URL=http://shareIt-server:8090
 
   shareIt-server:
     build: shareIt-server
     image: shareit-server-image
     container_name: shareIt-server-container
     ports:
-      - "9090:8080"
+      - "9090:8090"
     depends_on:
       - shareIt-db
     environment:

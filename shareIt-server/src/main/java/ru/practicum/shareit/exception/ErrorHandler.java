@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import javax.validation.ValidationException;
 import java.util.Map;
 
 @Slf4j
@@ -23,7 +22,7 @@ public class ErrorHandler {
         return Map.of("errorMessage", e.getMessage());
     }
 
-    @ExceptionHandler({NotValidException.class, ValidationException.class, ItemAlreadyBookedException.class})
+    @ExceptionHandler({NotValidException.class, ItemAlreadyBookedException.class})
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Map<String, String> handleValidationException(final RuntimeException e) {
         log.error("Получен статус 400 BAD REQUEST. {}", e.getMessage(), e);
