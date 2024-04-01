@@ -39,7 +39,7 @@ public class BookingServiceImpl implements BookingService {
     public BookingDto addBooking(long bookerId, BookingDto bookingDto) {
         User user = isUserPresent(bookerId);
         Item item = isItemPresent(bookingDto.getItemId());
-        isBookingValid(bookerId, bookingDto, item);
+        isBookingValid(bookerId, item);
         Booking booking = BookingMapper.toBooking(bookingDto);
         booking.setItem(item);
         booking.setBooker(user);
@@ -136,7 +136,6 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private void isBookingValid(long bookerId,
-                                BookingDto bookingDto,
                                 Item item) {
         if (item.getOwner().getId() == bookerId) {
             log.error("Пользователь с ИД {} является владельцем вещи с ИД {}.", bookerId, item.getId());
@@ -146,13 +145,6 @@ public class BookingServiceImpl implements BookingService {
         if (!item.getAvailable()) {
             log.error("Вещь с ИД {} уже забронирована.", item.getId());
             throw new ItemAlreadyBookedException(String.format("Вещь с ИД %d уже забронирована.", item.getId()));
-        }
-        if (bookingDto.getStart() == null
-                || bookingDto.getEnd() == null
-                || bookingDto.getStart().isBefore(LocalDateTime.now())
-                || !bookingDto.getStart().isBefore(bookingDto.getEnd())) {
-            log.error("Даты бронирования заданы неверно.");
-            throw new NotValidException("Даты бронирования заданы неверно.");
         }
     }
 

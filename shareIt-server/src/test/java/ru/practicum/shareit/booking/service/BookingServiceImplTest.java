@@ -179,31 +179,6 @@ class BookingServiceImplTest {
     }
 
     @Test
-    @DisplayName("Ошибка NotValidException при добавлении бронирования, когда даты бронирования заданы неверно.")
-    void addBooking_whenStartIsNull_thenThrowNotValidException() {
-        long user1Id = 1L;
-        User user1 = users.get(0);
-        user1.setId(user1Id);
-        long user2Id = 2L;
-        User user2 = users.get(1);
-        user2.setId(user2Id);
-        when(userRepository.findById(user2Id)).thenReturn(Optional.of(user2));
-        long itemId = 1L;
-        Item item = items.get(0);
-        item.setId(itemId);
-        when(itemRepository.findById(itemId)).thenReturn(Optional.of(item));
-        BookingDto bookingDto = new BookingDto(null, itemId, null, LocalDateTime.now().plusDays(2),
-                null, null, null);
-
-        NotValidException exception = assertThrows(
-                NotValidException.class,
-                () -> bookingService.addBooking(user2Id, bookingDto));
-
-        assertEquals("Даты бронирования заданы неверно.", exception.getMessage());
-        verify(bookingRepository, never()).save(any());
-    }
-
-    @Test
     @DisplayName("Успешное подтверждение бронирования, когда пользователь владелец.")
     void approveBooking_whenStatusIsApproved_thenReturnedBookingDto() {
         long user1Id = 1L;

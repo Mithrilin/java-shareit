@@ -21,6 +21,7 @@ import ru.practicum.shareit.item.dto.ItemDto;
 import javax.validation.Valid;
 import javax.validation.constraints.Positive;
 import javax.validation.constraints.PositiveOrZero;
+import java.util.Collections;
 
 @Controller
 @AllArgsConstructor
@@ -65,6 +66,9 @@ public class ItemController {
                                                    @PositiveOrZero @RequestParam (name = "from", defaultValue = "0") Integer from,
                                                    @Positive @RequestParam(name = "size", defaultValue = "10") Integer size) {
         log.info("Get items with text={}, from={}, size={}", text, from, size);
+        if (text == null || text.isBlank()) {
+            return ResponseEntity.ok(Collections.emptyList());
+        }
         return itemClient.getItemsBySearch(text, from, size);
     }
 

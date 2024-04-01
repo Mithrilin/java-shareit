@@ -14,9 +14,9 @@ import java.util.Map;
 @RestControllerAdvice
 public class ErrorHandler {
 
-    @ExceptionHandler
+    @ExceptionHandler({NotValidException.class, IllegalArgumentException.class})
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, String> unknownStateException(final IllegalArgumentException e) {
+    public Map<String, String> handleValidationException(final RuntimeException e) {
         log.error("Получен статус 400 BAD REQUEST. {}", e.getMessage(), e);
         return Map.of("error", e.getMessage());
     }

@@ -17,7 +17,6 @@ import ru.practicum.shareit.item.dto.ItemGetResponseDto;
 import ru.practicum.shareit.item.service.ItemService;
 import ru.practicum.shareit.params.PageRequestParams;
 
-import java.util.Collections;
 import java.util.List;
 
 @RestController
@@ -59,9 +58,6 @@ public class ItemController {
     public List<ItemDto> getItemsBySearch(@RequestParam String text,
                                           @RequestParam int from,
                                           @RequestParam int size) {
-        if (text == null || text.isBlank()) {
-            return Collections.emptyList();
-        }
         final String sortBy = "id";
         final PageRequestParams pageRequestParams = new PageRequestParams(from, size, Sort.Direction.ASC, sortBy);
         return itemService.getItemsBySearch(text, pageRequestParams);

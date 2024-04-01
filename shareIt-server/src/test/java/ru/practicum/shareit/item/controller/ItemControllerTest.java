@@ -20,8 +20,6 @@ import java.util.List;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -144,23 +142,6 @@ class ItemControllerTest {
                 .andExpect(jsonPath("$[1].id", is(itemDtos.get(1).getId()), Long.class))
                 .andExpect(jsonPath("$[1].name", is(itemDtos.get(1).getName())))
                 .andExpect(jsonPath("$[1].description", is(itemDtos.get(1).getDescription())));
-    }
-
-    @Test
-    @DisplayName("Получение пустого списка вещей по поисковому запросу")
-    void getItemsBySearch_whenTextIsBlank_thenReturnedEmptyItemDtoList() throws Exception {
-
-        mvc.perform(get("/items/search")
-                        .param("text", "")
-                        .param("from", "0")
-                        .param("size", "20")
-                        .characterEncoding(StandardCharsets.UTF_8)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(0)));
-
-        verify(itemService, never()).getItemsBySearch(Mockito.anyString(), Mockito.any(PageRequestParams.class));
     }
 
     @Test

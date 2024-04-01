@@ -16,10 +16,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import ru.practicum.shareit.booking.BookingClient;
 import ru.practicum.shareit.booking.dto.BookingDto;
 import ru.practicum.shareit.booking.dto.BookingState;
+import ru.practicum.shareit.exception.NotValidException;
 
 import javax.validation.Valid;
 import javax.validation.constraints.Positive;
 import javax.validation.constraints.PositiveOrZero;
+import java.time.LocalDateTime;
 
 @Controller
 @RequestMapping(path = "/bookings")
@@ -33,6 +35,13 @@ public class BookingController {
 	public ResponseEntity<Object> createBooking(@RequestHeader("X-Sharer-User-Id") long userId,
 												@RequestBody @Valid BookingDto bookingDto) {
 		log.info("Creating booking {}, userId={}", bookingDto, userId);
+		if (bookingDto.getStart() == null
+				|| bookingDto.getEnd() == null
+				|| bookingDto.getStart().isBefore(LocalDateTime.now())
+				|| !bookingDto.getStart().isBefore(bookingDto.getEnd())) {
+			log.error("Даты бронирования заданы неверно.");
+			throw new NotValidException("Даты бронирования заданы неверно.");
+		}
 		return bookingClient.addBooking(userId, bookingDto);
 	}
 
